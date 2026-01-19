@@ -1,0 +1,15 @@
+{
+  "root": "TC01-REQ-REC",
+  "fields": [
+    {
+      "name": "REQ-NAME",
+      "pic": "X(10)",
+      "usage": "DISPLAY"
+    },
+    {
+      "name": "REQ-AGE",
+      "pic": "9(3)",
+      "usage": "DISPLAY"
+    }
+  ]
+}

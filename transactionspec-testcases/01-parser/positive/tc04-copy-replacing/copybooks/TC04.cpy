@@ -1,0 +1,2 @@
+       01 TC04-REC.
+          COPY TC04-COMMON REPLACING ==:TAG:== BY ==REQ==.

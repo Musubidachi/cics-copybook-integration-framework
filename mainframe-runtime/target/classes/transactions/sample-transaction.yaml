@@ -1,0 +1,130 @@
+# TransactionSpec (v1) — CICS Copybook Integration Framework
+# Place this file at:
+#   mainframe-runtime/src/main/resources/transactions/sample-transaction.yaml
+#
+# You can add more transactions in the same folder. The runtime should load all
+# *.yaml files under classpath:/transactions/
+
+apiVersion: "cics-copybook-framework/v1"
+kind: "TransactionSpec"
+
+metadata:
+  # Unique ID used by callers and routing headers (e.g., specId)
+  id: "sample-transaction"
+  # Human-friendly name/description
+  name: "Sample CICS Transaction"
+  description: "Example TransactionSpec showing request/response container mapping."
+
+encoding:
+  # Locked default per project: IBM037 (EBCDIC)
+  charset: "IBM037"
+  # Define COMP/BINARY byte order explicitly for this transaction (lock with golden tests)
+  compEndian: "BIG_ENDIAN"   # BIG_ENDIAN | LITTLE_ENDIAN
+  # DISPLAY string rules
+  stringPadByteHex: "40"     # EBCDIC space is typically 0x40 in IBM037
+  stringTrimRight: true
+  # DISPLAY numeric rules
+  displayNumeric:
+    padWith: "0"             # "0" or "SPACE" (SPACE should normally be rejected unless you explicitly want coercion)
+    rejectSpaces: true
+  # COMP-3 (packed decimal) rules
+  comp3:
+    # Standard packed-decimal sign nibbles (lock with tests)
+    positiveSignNibbleHex: "C"  # C=+ , D=- , F=unsigned (some shops use F)
+    negativeSignNibbleHex: "D"
+    unsignedSignNibbleHex: "F"
+
+copybooks:
+  # Copybook resolution strategy: these are classpath resources by default.
+  # Agent 1 parses COPY ... REPLACING into AST; Agent 2 applies REPLACING during layout resolution.
+  #
+  # Typical layout:
+  #   src/main/resources/copybooks/<name>.cpy
+  #
+  searchPaths:
+    - "classpath:/copybooks"
+
+  # The "entry" copybooks that define the top-level record layouts for request/response.
+  # These should be the 01-level roots for the data you will encode/decode.
+  request:
+    rootCopybook: "SAMPLE-REQUEST.cpy"
+    root01: "SAMPLE-REQUEST-REC"
+  response:
+    rootCopybook: "SAMPLE-RESPONSE.cpy"
+    root01: "SAMPLE-RESPONSE-REC"
+
+containers:
+  # Canonical transport domain is Map<String, byte[]> where key is container name.
+  #
+  # Define which containers are sent/received, and how they map to DTO roots.
+  request:
+    - name: "REQDATA"
+      direction: "IN"              # IN | OUT | INOUT
+      required: true
+      # How to build bytes for this container
+      payload:
+        type: "COPYBOOK_RECORD"    # COPYBOOK_RECORD | RAW
+        recordRole: "REQUEST"      # REQUEST | RESPONSE
+        # Which DTO (generated) encodes/decodes this record
+        dtoClass: "com.yourco.generated.sample.SampleRequestRec"
+        codecClass: "com.yourco.generated.sample.SampleRequestRecCodec"
+        # Optional: enforce container byte length (recommended once stable)
+        expectedLengthBytes: null
+
+  response:
+    - name: "RSPDATA"
+      direction: "OUT"
+      required: true
+      payload:
+        type: "COPYBOOK_RECORD"
+        recordRole: "RESPONSE"
+        dtoClass: "com.yourco.generated.sample.SampleResponseRec"
+        codecClass: "com.yourco.generated.sample.SampleResponseRecCodec"
+        expectedLengthBytes: null
+
+    # Optional status/diagnostic containers commonly returned by mainframe programs
+    - name: "STATUS"
+      direction: "OUT"
+      required: false
+      payload:
+        type: "RAW"
+        recordRole: null
+        dtoClass: null
+        codecClass: null
+        expectedLengthBytes: null
+
+mainframe:
+  # These values are used by the Camel adapter / CICS component configuration.
+  # Keep them here so the route can be generic and spec-driven.
+  #
+  # NOTE: Exact fields may vary depending on which CICS connector you use.
+  target:
+    systemId: "CICS1"          # e.g., CTG server/system identifier
+    transactionId: "ABCD"      # 4-char CICS transaction id (if applicable)
+    programName: "SAMPLEPGM"   # CICS program name to invoke
+    channelName: "CHAN1"       # Optional channel name
+  timeouts:
+    # Milliseconds
+    requestTimeoutMs: 30000
+
+resultModel:
+  # Defines how the runtime turns returned containers into a typed result envelope.
+  # MainframeResult<T> should be produced for every call, even failures.
+  #
+  # Primary payload container to decode as the "data" value
+  successPayload:
+    container: "RSPDATA"
+    dtoClass: "com.yourco.generated.sample.SampleResponseRec"
+    codecClass: "com.yourco.generated.sample.SampleResponseRecCodec"
+
+  # Optional: map status containers into structured error/result fields
+  diagnostics:
+    - container: "STATUS"
+      parseAs: "EBCDIC_STRING"     # EBCDIC_STRING | HEX | NONE
+      charset: "IBM037"
+      trimRight: true
+
+validation:
+  # Fail-fast validations in runtime before invoking CICS
+  requireAllRequiredContainersPresent: true
+  requireExpectedLengthsWhenProvided: true

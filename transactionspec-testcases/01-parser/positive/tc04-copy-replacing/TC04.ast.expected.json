@@ -1,0 +1,17 @@
+{
+  "root": {
+    "name": "TC04-REC",
+    "children": [
+      {
+        "type": "COPY",
+        "name": "TC04-COMMON",
+        "replacing": [
+          {
+            "from": ":TAG:",
+            "to": "REQ"
+          }
+        ]
+      }
+    ]
+  }
+}

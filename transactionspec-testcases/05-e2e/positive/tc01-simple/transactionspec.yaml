@@ -1,0 +1,43 @@
+apiVersion: "cics-copybook-framework/v1"
+kind: "TransactionSpec"
+metadata:
+  id: "tc01-simple"
+  name: "TC01 Simple"
+encoding:
+  charset: "IBM037"
+  compEndian: "BIG_ENDIAN"
+  stringPadByteHex: "40"
+  stringTrimRight: true
+  displayNumeric: { padWith: "0", rejectSpaces: true }
+  comp3: { positiveSignNibbleHex: "C", negativeSignNibbleHex: "D", unsignedSignNibbleHex: "F" }
+copybooks:
+  searchPaths: ["classpath:/copybooks"]
+  request: { rootCopybook: "TC01-REQ.cpy", root01: "TC01-REQ-REC" }
+  response: { rootCopybook: "TC01-RSP.cpy", root01: "TC01-RSP-REC" }
+containers:
+  request:
+    - name: "REQDATA"
+      direction: "IN"
+      required: true
+      payload:
+        type: "COPYBOOK_RECORD"
+        recordRole: "REQUEST"
+        dtoClass: "com.example.generated.tc01.Tc01ReqRec"
+        codecClass: "com.example.generated.tc01.Tc01ReqRecCodec"
+  response:
+    - name: "RSPDATA"
+      direction: "OUT"
+      required: true
+      payload:
+        type: "COPYBOOK_RECORD"
+        recordRole: "RESPONSE"
+        dtoClass: "com.example.generated.tc01.Tc01RspRec"
+        codecClass: "com.example.generated.tc01.Tc01RspRecCodec"
+mainframe:
+  target: { systemId: "CICS1", transactionId: "ABCD", programName: "TC01PGM", channelName: "CHAN1" }
+  timeouts: { requestTimeoutMs: 30000 }
+resultModel:
+  successPayload: { container: "RSPDATA", dtoClass: "com.example.generated.tc01.Tc01RspRec", codecClass: "com.example.generated.tc01.Tc01RspRecCodec" }
+validation:
+  requireAllRequiredContainersPresent: true
+  requireExpectedLengthsWhenProvided: false

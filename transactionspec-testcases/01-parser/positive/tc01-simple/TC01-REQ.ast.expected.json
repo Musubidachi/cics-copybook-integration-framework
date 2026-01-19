@@ -1,0 +1,20 @@
+{
+  "root": {
+    "name": "TC01-REQ-REC",
+    "level": 1,
+    "children": [
+      {
+        "level": 5,
+        "name": "REQ-NAME",
+        "pic": "X(10)",
+        "usage": null
+      },
+      {
+        "level": 5,
+        "name": "REQ-AGE",
+        "pic": "9(3)",
+        "usage": null
+      }
+    ]
+  }
+}

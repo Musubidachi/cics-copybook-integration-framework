@@ -1,0 +1,9 @@
+{
+  "success": true,
+  "data": {
+    "rspCode": "OK",
+    "rspMsg": "HELLO"
+  },
+  "errors": [],
+  "diagnostics": {}
+}
