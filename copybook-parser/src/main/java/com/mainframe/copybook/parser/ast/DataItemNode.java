@@ -16,14 +16,15 @@ import java.util.List;
  * USAGE, OCCURS and REDEFINES are optional; absent values are represented
  * by nulls.
  *
- * @param level      the numeric level of the item (01–49)
- * @param name       the data name identifier
- * @param pic        the parsed PIC clause or null
- * @param usage      the USAGE clause or null
- * @param occurs     the OCCURS clause or null
- * @param redefines  the REDEFINES clause or null
- * @param children   mutable list of child items (will be wrapped as unmodifiable in constructor)
- * @param span       the source span covering this entry
+ * @param level          the numeric level of the item (01–49)
+ * @param name           the data name identifier
+ * @param pic            the parsed PIC clause or null
+ * @param usage          the USAGE clause or null
+ * @param occurs         the OCCURS clause or null
+ * @param redefines      the REDEFINES clause or null
+ * @param children       list of child data items (will be wrapped as unmodifiable)
+ * @param conditionNames list of level-88 condition names attached to this item
+ * @param span           the source span covering this entry
  */
 public record DataItemNode(
         int level,
@@ -33,8 +34,10 @@ public record DataItemNode(
         OccursClause occurs,
         RedefinesClause redefines,
         List<DataItemNode> children,
+        List<ConditionNameNode> conditionNames,
         SourceSpan span
     ) implements AstNode {
+
     public DataItemNode {
         // Defensive copy: always wrap children into an unmodifiable list.  If null,
         // replace with an empty unmodifiable list.
@@ -43,5 +46,25 @@ public record DataItemNode(
         } else {
             children = Collections.unmodifiableList(new ArrayList<>(children));
         }
+        if (conditionNames == null) {
+            conditionNames = Collections.emptyList();
+        } else {
+            conditionNames = Collections.unmodifiableList(new ArrayList<>(conditionNames));
+        }
+    }
+
+    /**
+     * Backward-compatible constructor without condition names.
+     */
+    public DataItemNode(
+            int level,
+            String name,
+            PicClause pic,
+            Usage usage,
+            OccursClause occurs,
+            RedefinesClause redefines,
+            List<DataItemNode> children,
+            SourceSpan span) {
+        this(level, name, pic, usage, occurs, redefines, children, null, span);
     }
 }
