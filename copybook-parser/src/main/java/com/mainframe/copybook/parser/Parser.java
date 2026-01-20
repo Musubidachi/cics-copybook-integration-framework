@@ -25,6 +25,7 @@ import java.util.List;
  */
 public final class Parser {
     private final List<Token> tokens;
+    private final ParserOptions options;
     private int pos;
     private final List<Diagnostic> diagnostics = new ArrayList<>();
 
@@ -33,7 +34,15 @@ public final class Parser {
      * include an EOF sentinel at the end.
      */
     public Parser(List<Token> tokens) {
+        this(tokens, ParserOptions.NO_EXPANSION);
+    }
+
+    /**
+     * Build a parser for the given token stream with specified options.
+     */
+    public Parser(List<Token> tokens, ParserOptions options) {
         this.tokens = tokens;
+        this.options = options != null ? options : ParserOptions.NO_EXPANSION;
         this.pos = 0;
     }
 
@@ -195,7 +204,7 @@ public final class Parser {
             error("PARSE_L88_NO_PERIOD", "Level-88 entry missing terminating '.'", peek());
         }
 
-        SourceSpan span = new SourceSpan(levelTok.line(), levelTok.column(), endTok.line(), endTok.column());
+        SourceSpan span = createSpan(levelTok.line(), levelTok.column(), endTok.line(), endTok.column());
         return new ConditionNameNode(nameTok.lexeme(), values, span);
     }
 
@@ -227,12 +236,13 @@ public final class Parser {
         }
 
         String name = nameTok != null ? nameTok.lexeme() : "";
-        SourceSpan span = new SourceSpan(copyTok.line(), copyTok.column(), endTok.line(), endTok.column());
+        SourceSpan span = createSpan(copyTok.line(), copyTok.column(), endTok.line(), endTok.column());
         return new CopyNode(name, replacingPairs, span);
     }
 
     /**
-     * Parse REPLACING pairs: ==from== BY ==to== ...
+     * Parse REPLACING pairs: ==from== BY ==to== ... or 'from' BY 'to' ...
+     * Supports both pseudo-text (==...==) and quote-delimited ('...' or "...") forms.
      */
     private List<CopyNode.ReplacingPair> parseReplacingPairs() {
         List<CopyNode.ReplacingPair> pairs = new ArrayList<>();
@@ -243,61 +253,89 @@ public final class Parser {
                 break;
             }
 
-            // Expect ==from==
-            if (!check(TokenType.PSEUDO_TEXT_DELIMITER)) {
-                // Could be end of REPLACING clause
-                break;
-            }
-            advance(); // consume opening ==
+            String fromText;
+            String toText;
 
-            // Read the 'from' text (everything until next ==)
-            StringBuilder fromText = new StringBuilder();
-            while (!check(TokenType.EOF) && !check(TokenType.PSEUDO_TEXT_DELIMITER)) {
-                Token t = advance();
-                if (fromText.length() > 0) {
-                    fromText.append(" ");
+            // Check for quote-delimited form first (string literal)
+            if (check(TokenType.STRING_LITERAL)) {
+                // Quote-delimited form: 'from' BY 'to'
+                fromText = advance().lexeme();
+
+                // Expect BY keyword
+                if (!check(TokenType.KEYWORD) || !peek().lexeme().equals("BY")) {
+                    error("PARSE_REPLACING_NO_BY", "Invalid COPY REPLACING clause: expected BY after quoted text", peek());
+                    break;
                 }
-                fromText.append(t.lexeme());
-            }
+                advance(); // consume BY
 
-            if (!check(TokenType.PSEUDO_TEXT_DELIMITER)) {
-                error("PARSE_REPLACING_NO_CLOSE", "REPLACING clause missing closing '=='", peek());
-                break;
-            }
-            advance(); // consume closing ==
-
-            // Expect BY keyword
-            if (!check(TokenType.KEYWORD) || !peek().lexeme().equals("BY")) {
-                error("PARSE_REPLACING_NO_BY", "Invalid COPY REPLACING clause: expected pairs of FROM/BY replacements", peek());
-                break;
-            }
-            advance(); // consume BY
-
-            // Expect ==to==
-            if (!check(TokenType.PSEUDO_TEXT_DELIMITER)) {
-                error("PARSE_REPLACING_NO_TO", "REPLACING clause missing 'to' pseudo-text", peek());
-                break;
-            }
-            advance(); // consume opening ==
-
-            // Read the 'to' text (everything until next ==)
-            StringBuilder toText = new StringBuilder();
-            while (!check(TokenType.EOF) && !check(TokenType.PSEUDO_TEXT_DELIMITER)) {
-                Token t = advance();
-                if (toText.length() > 0) {
-                    toText.append(" ");
+                // Expect quoted 'to' text
+                if (!check(TokenType.STRING_LITERAL)) {
+                    error("PARSE_REPLACING_NO_TO", "REPLACING clause missing quoted 'to' text", peek());
+                    break;
                 }
-                toText.append(t.lexeme());
+                toText = advance().lexeme();
             }
+            // Check for pseudo-text delimiter form (==...==)
+            else if (check(TokenType.PSEUDO_TEXT_DELIMITER)) {
+                advance(); // consume opening ==
 
-            if (!check(TokenType.PSEUDO_TEXT_DELIMITER)) {
-                error("PARSE_REPLACING_NO_CLOSE2", "REPLACING clause missing closing '=='", peek());
+                // Read the 'from' text (everything until next ==)
+                StringBuilder fromBuilder = new StringBuilder();
+                while (!check(TokenType.EOF) && !check(TokenType.PSEUDO_TEXT_DELIMITER)) {
+                    Token t = advance();
+                    if (fromBuilder.length() > 0) {
+                        fromBuilder.append(" ");
+                    }
+                    fromBuilder.append(t.lexeme());
+                }
+
+                if (!check(TokenType.PSEUDO_TEXT_DELIMITER)) {
+                    error("PARSE_REPLACING_NO_CLOSE", "REPLACING clause missing closing '=='", peek());
+                    break;
+                }
+                advance(); // consume closing ==
+                fromText = fromBuilder.toString();
+
+                // Expect BY keyword
+                if (!check(TokenType.KEYWORD) || !peek().lexeme().equals("BY")) {
+                    error("PARSE_REPLACING_NO_BY", "Invalid COPY REPLACING clause: expected pairs of FROM/BY replacements", peek());
+                    break;
+                }
+                advance(); // consume BY
+
+                // Expect ==to== or 'to' (allow mixed forms)
+                if (check(TokenType.STRING_LITERAL)) {
+                    toText = advance().lexeme();
+                } else if (check(TokenType.PSEUDO_TEXT_DELIMITER)) {
+                    advance(); // consume opening ==
+
+                    // Read the 'to' text (everything until next ==)
+                    StringBuilder toBuilder = new StringBuilder();
+                    while (!check(TokenType.EOF) && !check(TokenType.PSEUDO_TEXT_DELIMITER)) {
+                        Token t = advance();
+                        if (toBuilder.length() > 0) {
+                            toBuilder.append(" ");
+                        }
+                        toBuilder.append(t.lexeme());
+                    }
+
+                    if (!check(TokenType.PSEUDO_TEXT_DELIMITER)) {
+                        error("PARSE_REPLACING_NO_CLOSE2", "REPLACING clause missing closing '=='", peek());
+                        break;
+                    }
+                    advance(); // consume closing ==
+                    toText = toBuilder.toString();
+                } else {
+                    error("PARSE_REPLACING_NO_TO", "REPLACING clause missing 'to' pseudo-text or quoted text", peek());
+                    break;
+                }
+            } else {
+                // Neither pseudo-text nor string literal - end of REPLACING clause
                 break;
             }
-            advance(); // consume closing ==
 
             try {
-                pairs.add(new CopyNode.ReplacingPair(fromText.toString(), toText.toString()));
+                pairs.add(new CopyNode.ReplacingPair(fromText, toText));
             } catch (IllegalArgumentException e) {
                 error("PARSE_REPLACING_INVALID", e.getMessage(), tok);
             }
@@ -443,11 +481,11 @@ public final class Parser {
         if (check(TokenType.PUNCT) && peek().lexeme().equals(".")) {
             Token dot = advance();
             // Build source span from level token to period
-            SourceSpan span = new SourceSpan(levelTok.line(), levelTok.column(), dot.line(), dot.column());
+            SourceSpan span = createSpan(levelTok.line(), levelTok.column(), dot.line(), dot.column());
             return new NodeBuilder(level, name, pic, usage, occurs, redefines, span);
         } else {
             error("PARSE19", "Data entry missing terminating '.'", peek());
-            return new NodeBuilder(level, name, pic, usage, occurs, redefines, new SourceSpan(levelTok.line(), levelTok.column(), levelTok.line(), levelTok.column()));
+            return new NodeBuilder(level, name, pic, usage, occurs, redefines, createSpan(levelTok.line(), levelTok.column(), levelTok.line(), levelTok.column()));
         }
     }
 
@@ -658,7 +696,20 @@ public final class Parser {
      * provided token.
      */
     private void error(String code, String message, Token token) {
-        diagnostics.add(new Diagnostic("ParseError", code, message, SourceSpan.single(token.line(), token.column())));
+        SourceSpan span = options.trackSourcePositions()
+                ? SourceSpan.single(token.line(), token.column())
+                : null;
+        diagnostics.add(new Diagnostic("ParseError", code, message, span));
+    }
+
+    /**
+     * Create a SourceSpan respecting the trackSourcePositions option.
+     */
+    private SourceSpan createSpan(int startLine, int startCol, int endLine, int endCol) {
+        if (!options.trackSourcePositions()) {
+            return null;
+        }
+        return new SourceSpan(startLine, startCol, endLine, endCol);
     }
 
     /**
