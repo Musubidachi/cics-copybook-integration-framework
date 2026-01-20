@@ -1,0 +1,30 @@
+{
+  "roots": [
+    {
+      "name": "TC06-MAIN-REC",
+      "level": 1,
+      "children": [
+        {
+          "name": "TC06-HEADER",
+          "level": 5,
+          "pic": "X(10)"
+        }
+      ]
+    },
+    {
+      "name": "TC06-FIELD1",
+      "level": 5,
+      "pic": "X(5)"
+    },
+    {
+      "name": "TC06-FIELD2",
+      "level": 5,
+      "pic": "9(3)"
+    },
+    {
+      "name": "TC06-FOOTER",
+      "level": 5,
+      "pic": "X(5)"
+    }
+  ]
+}

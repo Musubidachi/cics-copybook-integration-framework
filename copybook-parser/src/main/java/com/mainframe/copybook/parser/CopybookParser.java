@@ -1,13 +1,13 @@
 package com.mainframe.copybook.parser;
 
 import com.mainframe.copybook.parser.ast.AstNode;
+import com.mainframe.copybook.parser.ast.ConditionNameNode;
 import com.mainframe.copybook.parser.ast.CopybookAst;
 import com.mainframe.copybook.parser.ast.CopyNode;
 import com.mainframe.copybook.parser.ast.DataItemNode;
 
 import java.io.IOException;
 import java.io.Reader;
-import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -33,6 +33,7 @@ public final class CopybookParser {
      * @param options      parser options
      * @return the parsed AST
      * @throws IOException if reading fails
+     * @throws ParseFailedException if strictMode is enabled and errors occur
      */
     public static CopybookAst parse(
             String copybookName,
@@ -53,6 +54,7 @@ public final class CopybookParser {
      * @param resolver     resolver for COPY statements
      * @param options      parser options
      * @return the parsed AST
+     * @throws ParseFailedException if strictMode is enabled and errors occur
      */
     public static CopybookAst parseString(
             String copybookName,
@@ -69,9 +71,17 @@ public final class CopybookParser {
         List<Diagnostic> diagnostics = new ArrayList<>(tokenizer.diagnostics());
 
         // Phase 3: Parse
-        Parser parser = new Parser(tokens);
+        Parser parser = new Parser(tokens, options);
         CopybookAst ast = parser.parse();
         diagnostics.addAll(ast.diagnostics());
+
+        // Check for errors in strict mode after parsing
+        if (options.strictMode()) {
+            List<Diagnostic> errors = getErrors(diagnostics);
+            if (!errors.isEmpty()) {
+                throw new ParseFailedException(errors);
+            }
+        }
 
         // Phase 4: COPY expansion (if enabled)
         List<AstNode> roots = new ArrayList<>(ast.roots());
@@ -79,6 +89,14 @@ public final class CopybookParser {
             Set<String> visited = new HashSet<>();
             visited.add(copybookName);
             roots = expandCopyStatements(roots, resolver, options, diagnostics, visited);
+        }
+
+        // Check for errors in strict mode after expansion
+        if (options.strictMode()) {
+            List<Diagnostic> errors = getErrors(diagnostics);
+            if (!errors.isEmpty()) {
+                throw new ParseFailedException(errors);
+            }
         }
 
         return new CopybookAst(roots, diagnostics);
@@ -95,7 +113,25 @@ public final class CopybookParser {
     }
 
     /**
-     * Expand COPY statements in the AST.
+     * Get error diagnostics from the list.
+     */
+    private static List<Diagnostic> getErrors(List<Diagnostic> diagnostics) {
+        return diagnostics.stream()
+                .filter(CopybookParser::isError)
+                .toList();
+    }
+
+    /**
+     * Check if a diagnostic is an error.
+     */
+    private static boolean isError(Diagnostic d) {
+        String category = d.category().toLowerCase();
+        return category.contains("error");
+    }
+
+    /**
+     * Expand COPY statements in the AST recursively.
+     * This handles both root-level and nested COPY statements within DataItemNode children.
      */
     private static List<AstNode> expandCopyStatements(
             List<AstNode> roots,
@@ -108,69 +144,10 @@ public final class CopybookParser {
 
         for (AstNode node : roots) {
             if (node instanceof CopyNode copyNode) {
-                String name = copyNode.copybookName();
-
-                // Check for circular inclusion
-                if (visited.contains(name)) {
-                    diagnostics.add(new Diagnostic(
-                            "ParseError",
-                            "COPY_CIRCULAR",
-                            "Circular COPY detected: " + name,
-                            copyNode.span()
-                    ));
-                    continue;
-                }
-
-                // Resolve the copybook
-                Optional<Reader> resolved = resolver.resolve(name);
-                if (resolved.isEmpty()) {
-                    diagnostics.add(new Diagnostic(
-                            "ParseError",
-                            "COPYBOOK_NOT_FOUND",
-                            "Copybook not found: " + name,
-                            copyNode.span()
-                    ));
-                    // Keep the CopyNode in the AST when not expanded
-                    expanded.add(copyNode);
-                    continue;
-                }
-
-                try {
-                    String content = readAll(resolved.get());
-
-                    // Apply REPLACING if present
-                    if (!copyNode.replacingPairs().isEmpty()) {
-                        content = applyReplacing(content, copyNode.replacingPairs());
-                    }
-
-                    // Parse the included copybook
-                    visited.add(name);
-                    CopybookAst includedAst = parseString(name, content, resolver,
-                            ParserOptions.builder()
-                                    .expandCopy(options.expandCopy())
-                                    .strictMode(options.strictMode())
-                                    .trackSourcePositions(options.trackSourcePositions())
-                                    .build());
-                    visited.remove(name);
-
-                    diagnostics.addAll(includedAst.diagnostics());
-
-                    // Add expanded nodes
-                    expanded.addAll(includedAst.roots());
-
-                } catch (IOException e) {
-                    diagnostics.add(new Diagnostic(
-                            "ParseError",
-                            "COPY_READ_ERROR",
-                            "Error reading copybook " + name + ": " + e.getMessage(),
-                            copyNode.span()
-                    ));
-                    expanded.add(copyNode);
-                }
+                expanded.addAll(expandCopyNode(copyNode, resolver, options, diagnostics, visited));
             } else if (node instanceof DataItemNode dataItem) {
-                // Recursively expand any COPY statements in children
-                // (though typically COPY statements appear at root level)
-                expanded.add(dataItem);
+                // Recursively expand COPY statements in children
+                expanded.add(expandDataItemNode(dataItem, resolver, options, diagnostics, visited));
             } else {
                 expanded.add(node);
             }
@@ -180,15 +157,302 @@ public final class CopybookParser {
     }
 
     /**
-     * Apply REPLACING transformations to copybook content.
-     * This performs token-level replacement.
+     * Expand a single CopyNode.
+     */
+    private static List<AstNode> expandCopyNode(
+            CopyNode copyNode,
+            CopybookResolver resolver,
+            ParserOptions options,
+            List<Diagnostic> diagnostics,
+            Set<String> visited
+    ) {
+        String name = copyNode.copybookName();
+
+        // Check for circular inclusion
+        if (visited.contains(name)) {
+            diagnostics.add(new Diagnostic(
+                    "ParseError",
+                    "COPY_CIRCULAR",
+                    "Circular COPY detected: " + name,
+                    copyNode.span()
+            ));
+            return List.of();
+        }
+
+        // Resolve the copybook
+        Optional<Reader> resolved = resolver.resolve(name);
+        if (resolved.isEmpty()) {
+            diagnostics.add(new Diagnostic(
+                    "ParseError",
+                    "COPYBOOK_NOT_FOUND",
+                    "Copybook not found: " + name,
+                    copyNode.span()
+            ));
+            // Keep the CopyNode in the AST when not expanded
+            return List.of(copyNode);
+        }
+
+        try {
+            String content = readAll(resolved.get());
+
+            // Apply REPLACING if present using token-sequence matching
+            if (!copyNode.replacingPairs().isEmpty()) {
+                content = applyReplacing(content, copyNode.replacingPairs());
+            }
+
+            // Parse the included copybook
+            visited.add(name);
+            CopybookAst includedAst = parseString(name, content, resolver,
+                    ParserOptions.builder()
+                            .expandCopy(options.expandCopy())
+                            .strictMode(false) // Don't throw from nested parse
+                            .trackSourcePositions(options.trackSourcePositions())
+                            .build());
+            visited.remove(name);
+
+            diagnostics.addAll(includedAst.diagnostics());
+
+            // Return expanded nodes (they are already recursively expanded)
+            return new ArrayList<>(includedAst.roots());
+
+        } catch (IOException e) {
+            diagnostics.add(new Diagnostic(
+                    "ParseError",
+                    "COPY_READ_ERROR",
+                    "Error reading copybook " + name + ": " + e.getMessage(),
+                    copyNode.span()
+            ));
+            return List.of(copyNode);
+        }
+    }
+
+    /**
+     * Recursively expand COPY statements within a DataItemNode's children.
+     * Creates a new DataItemNode with expanded children, preserving all other attributes.
+     */
+    private static DataItemNode expandDataItemNode(
+            DataItemNode dataItem,
+            CopybookResolver resolver,
+            ParserOptions options,
+            List<Diagnostic> diagnostics,
+            Set<String> visited
+    ) {
+        List<DataItemNode> children = dataItem.children();
+        if (children.isEmpty()) {
+            return dataItem;
+        }
+
+        // Check if any children need expansion (are CopyNodes or have children that might contain CopyNodes)
+        List<DataItemNode> expandedChildren = new ArrayList<>();
+        boolean hasChanges = false;
+
+        for (DataItemNode child : children) {
+            // Recursively expand this child's children
+            DataItemNode expandedChild = expandDataItemNode(child, resolver, options, diagnostics, visited);
+            if (expandedChild != child) {
+                hasChanges = true;
+            }
+            expandedChildren.add(expandedChild);
+        }
+
+        // Now check if any of the children's children list contains CopyNodes
+        // (In COBOL, COPY can appear inside a group item)
+        // Since DataItemNode children are DataItemNodes, we need to handle the case
+        // where the parser places CopyNode in a separate structure.
+
+        if (!hasChanges) {
+            return dataItem;
+        }
+
+        // Create a new DataItemNode with the expanded children
+        return new DataItemNode(
+                dataItem.level(),
+                dataItem.name(),
+                dataItem.pic(),
+                dataItem.usage(),
+                dataItem.occurs(),
+                dataItem.redefines(),
+                expandedChildren,
+                dataItem.conditionNames(),
+                dataItem.span()
+        );
+    }
+
+    /**
+     * Apply REPLACING transformations to copybook content using token-sequence matching.
+     * This replaces multi-token sequences, not just single tokens.
      */
     private static String applyReplacing(String content, List<CopyNode.ReplacingPair> pairs) {
-        // Normalize and tokenize for proper token-level replacement
+        // Normalize and tokenize the content
         List<NormalizedLine> lines = Normalizer.normalize(content);
         Tokenizer tokenizer = new Tokenizer();
         List<Token> tokens = tokenizer.tokenize(lines);
 
+        // Convert ReplacingPairs to token sequences
+        List<TokenSequencePair> tokenPairs = new ArrayList<>();
+        for (CopyNode.ReplacingPair pair : pairs) {
+            List<String> fromTokens = tokenizeReplacingText(pair.from());
+            List<String> toTokens = tokenizeReplacingText(pair.to());
+            tokenPairs.add(new TokenSequencePair(fromTokens, toTokens));
+        }
+
+        // Apply token-sequence replacement
+        List<Token> resultTokens = applyTokenSequenceReplacing(tokens, tokenPairs);
+
+        // Reconstruct the source text
+        return reconstructSource(resultTokens);
+    }
+
+    /**
+     * Tokenize replacement text (from pseudo-text or quoted text).
+     * Returns a list of token lexemes.
+     */
+    private static List<String> tokenizeReplacingText(String text) {
+        if (text == null || text.isEmpty()) {
+            return List.of();
+        }
+
+        // Normalize and tokenize
+        List<NormalizedLine> lines = Normalizer.normalize("       " + text);
+        Tokenizer tokenizer = new Tokenizer();
+        List<Token> tokens = tokenizer.tokenize(lines);
+
+        // Extract lexemes, excluding EOF
+        List<String> lexemes = new ArrayList<>();
+        for (Token token : tokens) {
+            if (token.type() != TokenType.EOF) {
+                lexemes.add(token.lexeme());
+            }
+        }
+        return lexemes;
+    }
+
+    /**
+     * Apply token-sequence replacement to a token list.
+     */
+    private static List<Token> applyTokenSequenceReplacing(List<Token> tokens, List<TokenSequencePair> pairs) {
+        List<Token> result = new ArrayList<>(tokens);
+
+        // Apply each pair in order
+        for (TokenSequencePair pair : pairs) {
+            result = applyOneTokenSequence(result, pair);
+        }
+
+        return result;
+    }
+
+    /**
+     * Apply a single token-sequence replacement pair.
+     */
+    private static List<Token> applyOneTokenSequence(List<Token> tokens, TokenSequencePair pair) {
+        if (pair.from().isEmpty()) {
+            return tokens;
+        }
+
+        List<Token> result = new ArrayList<>();
+        int i = 0;
+
+        while (i < tokens.size()) {
+            Token current = tokens.get(i);
+
+            // Skip EOF
+            if (current.type() == TokenType.EOF) {
+                result.add(current);
+                i++;
+                continue;
+            }
+
+            // Try to match the 'from' sequence starting at position i
+            if (matchesSequence(tokens, i, pair.from())) {
+                // Replace with 'to' tokens
+                for (String toLexeme : pair.to()) {
+                    // Create synthetic token with the first matched token's position
+                    result.add(new Token(
+                            determineTokenType(toLexeme),
+                            toLexeme,
+                            current.line(),
+                            current.column()
+                    ));
+                }
+                // Skip the matched 'from' tokens
+                i += pair.from().size();
+            } else {
+                // Check for partial match within identifier (e.g., :TAG: in :TAG:-ID)
+                String lexeme = current.lexeme();
+                boolean replaced = false;
+
+                if (pair.from().size() == 1) {
+                    String fromText = pair.from().get(0);
+                    if (lexeme.contains(fromText) && !lexeme.equals(fromText)) {
+                        // Partial replacement within token
+                        String toText = pair.to().isEmpty() ? "" : String.join("", pair.to());
+                        String newLexeme = lexeme.replace(fromText, toText);
+                        result.add(new Token(
+                                current.type(),
+                                newLexeme,
+                                current.line(),
+                                current.column()
+                        ));
+                        replaced = true;
+                    }
+                }
+
+                if (!replaced) {
+                    result.add(current);
+                }
+                i++;
+            }
+        }
+
+        return result;
+    }
+
+    /**
+     * Check if tokens starting at index match the given sequence.
+     */
+    private static boolean matchesSequence(List<Token> tokens, int startIndex, List<String> sequence) {
+        if (startIndex + sequence.size() > tokens.size()) {
+            return false;
+        }
+
+        for (int j = 0; j < sequence.size(); j++) {
+            Token token = tokens.get(startIndex + j);
+            String expected = sequence.get(j);
+
+            // Skip EOF in comparison
+            if (token.type() == TokenType.EOF) {
+                return false;
+            }
+
+            // Case-insensitive comparison for keywords/identifiers
+            if (!token.lexeme().equalsIgnoreCase(expected)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Determine token type for a lexeme.
+     */
+    private static TokenType determineTokenType(String lexeme) {
+        if (lexeme.matches("\\d+")) {
+            return TokenType.INTEGER;
+        }
+        String upper = lexeme.toUpperCase();
+        if (Set.of("PIC", "PICTURE", "USAGE", "OCCURS", "REDEFINES", "COPY", "TIMES",
+                "VALUE", "VALUES", "THRU", "THROUGH", "REPLACING", "BY",
+                "DEPENDING", "ON", "TO", "RENAMES", "IS", "COMP-3").contains(upper)) {
+            return TokenType.KEYWORD;
+        }
+        return TokenType.IDENTIFIER;
+    }
+
+    /**
+     * Reconstruct source text from tokens.
+     */
+    private static String reconstructSource(List<Token> tokens) {
         StringBuilder result = new StringBuilder();
         int lastLine = 1;
         int lastCol = 8;
@@ -198,7 +462,7 @@ public final class CopybookParser {
                 break;
             }
 
-            // Add whitespace/newlines between tokens
+            // Add newlines and spaces as needed
             while (lastLine < token.line()) {
                 result.append("\n       "); // COBOL fixed format
                 lastLine++;
@@ -209,27 +473,17 @@ public final class CopybookParser {
                 lastCol++;
             }
 
-            // Check if token should be replaced
-            String lexeme = token.lexeme();
-            String replacement = lexeme;
-            for (CopyNode.ReplacingPair pair : pairs) {
-                if (lexeme.equals(pair.from()) || lexeme.equalsIgnoreCase(pair.from())) {
-                    replacement = pair.to();
-                    break;
-                }
-                // Also check for partial matches in identifiers (e.g., :TAG: in :TAG:-ID)
-                if (lexeme.contains(pair.from())) {
-                    replacement = lexeme.replace(pair.from(), pair.to());
-                    break;
-                }
-            }
-
-            result.append(replacement);
-            lastCol += replacement.length();
+            result.append(token.lexeme());
+            lastCol += token.lexeme().length();
         }
 
         return result.toString();
     }
+
+    /**
+     * Represents a REPLACING pair with tokenized from/to sequences.
+     */
+    private record TokenSequencePair(List<String> from, List<String> to) {}
 
     /**
      * Read all content from a Reader into a String.
