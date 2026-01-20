@@ -37,9 +37,6 @@
   <!-- Modules               -->
   <!-- ===================== -->
   <modules>
-    <module>runtime</module>
-    <module>generator</module>
-    <!-- add later when ready -->
     <!-- <module>maven-plugin</module> -->
     <!-- <module>examples</module> -->
     <module>copybook-parser</module>

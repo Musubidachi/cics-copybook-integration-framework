@@ -1,11 +1,37 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  <parent>
-    <groupId>com.mainframe</groupId>
-    <artifactId>cics-copybook-integration-framework</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
-  </parent>
+
+  <!--
+    This module defines the copybook‑parser library.  It exposes a small API for
+    converting COBOL copybook text into a stable Abstract Syntax Tree.  The
+    parser performs no layout computation or semantic interpretation.  See
+    copybook-parser-module-doc.md for a detailed specification of supported
+    syntax and invariants.
+  -->
+
+  <groupId>com.mainframe</groupId>
   <artifactId>copybook-parser</artifactId>
+  <version>0.0.1-SNAPSHOT</version>
   <name>copybook-parser</name>
-  <description>copybook-parser</description>
+  <description>Parser for fixed-format COBOL copybooks</description>
+
+  <!-- Use JDK 17 for modern language features like records and sealed interfaces. -->
+  <properties>
+    <maven.compiler.source>17</maven.compiler.source>
+    <maven.compiler.target>17</maven.compiler.target>
+  </properties>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.10.1</version>
+        <configuration>
+          <release>17</release>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
 </project>

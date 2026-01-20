@@ -1,9 +1,38 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
-  <modelVersion>4.0.0</modelVersion>
-  <parent>
-    <groupId>com.mainframe</groupId>
-    <artifactId>cics-copybook-integration-framework</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
-  </parent>
-  <artifactId>mainframe-camel</artifactId>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- Inherit coordinates and shared configuration from the parent
+         integration framework. -->
+    <parent>
+        <groupId>com.mainframe</groupId>
+        <artifactId>cics-copybook-integration-framework</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>mainframe-camel</artifactId>
+
+    <!--
+      Dependencies for the Camel adapter.
+      A minimal set of Camel modules is declared here since the parent
+      pom provides dependency management for common libraries such as
+      SLF4J and JUnit. Versions are explicit to avoid ambiguity and can
+      be aligned with the rest of the project as needed.
+    -->
+    <dependencies>
+        <!-- Core Camel runtime used for routing -->
+        <dependency>
+            <groupId>org.apache.camel</groupId>
+            <artifactId>camel-core</artifactId>
+            <version>4.2.0</version>
+        </dependency>
+        <!-- Test support for Camel with JUnit 5, includes camel-mock -->
+        <dependency>
+            <groupId>org.apache.camel</groupId>
+            <artifactId>camel-test-junit5</artifactId>
+            <version>4.2.0</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
 </project>
