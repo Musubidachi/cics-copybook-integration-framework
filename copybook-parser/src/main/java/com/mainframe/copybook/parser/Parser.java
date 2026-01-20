@@ -1,6 +1,8 @@
 package com.mainframe.copybook.parser;
 
 import com.mainframe.copybook.parser.ast.AstNode;
+import com.mainframe.copybook.parser.ast.ConditionNameNode;
+import com.mainframe.copybook.parser.ast.CopybookAst;
 import com.mainframe.copybook.parser.ast.CopyNode;
 import com.mainframe.copybook.parser.ast.DataItemNode;
 import com.mainframe.copybook.parser.pic.PicClause;
@@ -8,14 +10,13 @@ import com.mainframe.copybook.parser.pic.PicElement;
 import com.mainframe.copybook.parser.pic.PicRepeat;
 import com.mainframe.copybook.parser.pic.PicSymbol;
 import com.mainframe.copybook.parser.pic.PicVirtualDecimal;
-import com.mainframe.copybook.parser.pic.PicSign;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
 
 /**
- * Top‑level parser that consumes a flat token stream and produces a
+ * Top-level parser that consumes a flat token stream and produces a
  * CopybookAst.  The parser implements a straightforward recursive descent
  * grammar for data description entries and COPY statements, building a
  * hierarchical tree of DataItemNode builders which are materialized into
@@ -40,9 +41,9 @@ public final class Parser {
      * Parse the token stream into a CopybookAst.  The resulting AST roots and
      * diagnostics lists will never be null, though either may be empty.
      *
-     * @return the parsed Copybook AST
+     * @return the parsed CopybookAst
      */
-    public AstResult parse() {
+    public CopybookAst parse() {
         // Root order preserves the order of declarations; each entry is either
         // a NodeBuilder (for data entries) or a CopyNode for COPY statements.
         List<Object> rootOrder = new ArrayList<>();
@@ -58,18 +59,41 @@ public final class Parser {
                 stack.clear();
                 rootOrder.add(parseCopyStatement());
             } else if (t.type() == TokenType.LEVEL_NUMBER) {
-                NodeBuilder builder = parseDataEntry();
-                if (builder != null) {
-                    // Determine hierarchical placement
-                    while (!stack.isEmpty() && stack.peek().level() >= builder.level()) {
-                        stack.pop();
+                int levelNum = Integer.parseInt(t.lexeme());
+
+                if (levelNum == 88) {
+                    // Level-88 condition name - attach to the most recent data item
+                    ConditionNameNode condNode = parseConditionName();
+                    if (condNode != null && !stack.isEmpty()) {
+                        stack.peek().conditionNames().add(condNode);
+                    } else if (condNode != null) {
+                        // No parent data item - report error
+                        error("PARSE_L88_NO_PARENT", "Level-88 condition name has no parent data item", t);
                     }
-                    if (stack.isEmpty()) {
+                } else if (levelNum == 66) {
+                    // RENAMES - unsupported
+                    error("UNSUPPORTED_FEATURE", "Unsupported feature: RENAMES (level 66)", t);
+                    skipToNextEntry();
+                } else if (levelNum == 77) {
+                    // Level-77 standalone items - parse as regular data entry
+                    NodeBuilder builder = parseDataEntry();
+                    if (builder != null) {
                         rootOrder.add(builder);
-                    } else {
-                        stack.peek().children().add(builder);
                     }
-                    stack.push(builder);
+                } else {
+                    NodeBuilder builder = parseDataEntry();
+                    if (builder != null) {
+                        // Determine hierarchical placement
+                        while (!stack.isEmpty() && stack.peek().level() >= builder.level()) {
+                            stack.pop();
+                        }
+                        if (stack.isEmpty()) {
+                            rootOrder.add(builder);
+                        } else {
+                            stack.peek().children().add(builder);
+                        }
+                        stack.push(builder);
+                    }
                 }
             } else if (t.type() == TokenType.PUNCT && t.lexeme().equals(".")) {
                 // Stray period outside of an entry; skip and record error
@@ -90,11 +114,93 @@ public final class Parser {
                 roots.add(copy);
             }
         }
-        return new AstResult(new DataAst(roots), diagnostics);
+        return new CopybookAst(roots, diagnostics);
     }
 
     /**
-     * Parse a COPY statement of the form: COPY <identifier> .
+     * Parse a Level-88 condition name entry.
+     */
+    private ConditionNameNode parseConditionName() {
+        Token levelTok = advance(); // consume 88
+
+        // Expect identifier (condition name)
+        Token nameTok;
+        if (check(TokenType.IDENTIFIER)) {
+            nameTok = advance();
+        } else {
+            error("PARSE_L88_NO_NAME", "Level-88 entry missing condition name", peek());
+            skipToNextEntry();
+            return null;
+        }
+
+        // Expect VALUE or VALUES keyword
+        if (!check(TokenType.KEYWORD) || (!peek().lexeme().equals("VALUE") && !peek().lexeme().equals("VALUES"))) {
+            error("PARSE_L88_NO_VALUE", "Level-88 entry missing VALUE clause", peek());
+            skipToNextEntry();
+            return null;
+        }
+        advance(); // consume VALUE/VALUES
+
+        // Optional IS keyword
+        if (check(TokenType.KEYWORD) && peek().lexeme().equals("IS")) {
+            advance();
+        }
+
+        // Parse value specifications
+        List<ConditionNameNode.ValueSpec> values = new ArrayList<>();
+        while (!check(TokenType.EOF)) {
+            Token valueTok = peek();
+            if (valueTok.type() == TokenType.PUNCT && valueTok.lexeme().equals(".")) {
+                break;
+            }
+
+            String value = null;
+            if (check(TokenType.STRING_LITERAL)) {
+                value = advance().lexeme();
+            } else if (check(TokenType.INTEGER) || check(TokenType.NUMERIC_LITERAL)) {
+                value = advance().lexeme();
+            } else if (check(TokenType.IDENTIFIER)) {
+                value = advance().lexeme();
+            } else {
+                break;
+            }
+
+            // Check for THRU/THROUGH
+            String thruValue = null;
+            if (check(TokenType.KEYWORD) && (peek().lexeme().equals("THRU") || peek().lexeme().equals("THROUGH"))) {
+                advance(); // consume THRU/THROUGH
+                if (check(TokenType.STRING_LITERAL)) {
+                    thruValue = advance().lexeme();
+                } else if (check(TokenType.INTEGER) || check(TokenType.NUMERIC_LITERAL)) {
+                    thruValue = advance().lexeme();
+                } else if (check(TokenType.IDENTIFIER)) {
+                    thruValue = advance().lexeme();
+                } else {
+                    error("PARSE_L88_THRU_VALUE", "THRU missing end value", peek());
+                }
+            }
+
+            if (thruValue != null) {
+                values.add(ConditionNameNode.ValueSpec.range(value, thruValue));
+            } else {
+                values.add(ConditionNameNode.ValueSpec.single(value));
+            }
+        }
+
+        // Expect terminating period
+        Token endTok = peek();
+        if (check(TokenType.PUNCT) && peek().lexeme().equals(".")) {
+            endTok = advance();
+        } else {
+            error("PARSE_L88_NO_PERIOD", "Level-88 entry missing terminating '.'", peek());
+        }
+
+        SourceSpan span = new SourceSpan(levelTok.line(), levelTok.column(), endTok.line(), endTok.column());
+        return new ConditionNameNode(nameTok.lexeme(), values, span);
+    }
+
+    /**
+     * Parse a COPY statement of the form: COPY <identifier> [REPLACING ...] .
      */
     private CopyNode parseCopyStatement() {
         Token copyTok = expect(TokenType.KEYWORD, "COPY");
@@ -104,16 +210,100 @@ public final class Parser {
         } else {
             error("PARSE2", "COPY statement missing copybook name", peek());
         }
+
+        // Check for REPLACING clause
+        List<CopyNode.ReplacingPair> replacingPairs = new ArrayList<>();
+        if (check(TokenType.KEYWORD) && peek().lexeme().equals("REPLACING")) {
+            advance(); // consume REPLACING
+            replacingPairs = parseReplacingPairs();
+        }
+
         // Expect terminating period
+        Token endTok = peek();
         if (!check(TokenType.PUNCT) || !peek().lexeme().equals(".")) {
             error("PARSE3", "COPY statement missing terminating '.'", peek());
         } else {
-            advance();
+            endTok = advance();
         }
+
         String name = nameTok != null ? nameTok.lexeme() : "";
-        // The span covers from the COPY keyword to the dot; approximate end
-        SourceSpan span = new SourceSpan(copyTok.line(), copyTok.column(), copyTok.line(), copyTok.column());
-        return new CopyNode(name, span);
+        SourceSpan span = new SourceSpan(copyTok.line(), copyTok.column(), endTok.line(), endTok.column());
+        return new CopyNode(name, replacingPairs, span);
+    }
+
+    /**
+     * Parse REPLACING pairs: ==from== BY ==to== ...
+     */
+    private List<CopyNode.ReplacingPair> parseReplacingPairs() {
+        List<CopyNode.ReplacingPair> pairs = new ArrayList<>();
+
+        while (!check(TokenType.EOF)) {
+            Token tok = peek();
+            if (tok.type() == TokenType.PUNCT && tok.lexeme().equals(".")) {
+                break;
+            }
+
+            // Expect ==from==
+            if (!check(TokenType.PSEUDO_TEXT_DELIMITER)) {
+                // Could be end of REPLACING clause
+                break;
+            }
+            advance(); // consume opening ==
+
+            // Read the 'from' text (everything until next ==)
+            StringBuilder fromText = new StringBuilder();
+            while (!check(TokenType.EOF) && !check(TokenType.PSEUDO_TEXT_DELIMITER)) {
+                Token t = advance();
+                if (fromText.length() > 0) {
+                    fromText.append(" ");
+                }
+                fromText.append(t.lexeme());
+            }
+
+            if (!check(TokenType.PSEUDO_TEXT_DELIMITER)) {
+                error("PARSE_REPLACING_NO_CLOSE", "REPLACING clause missing closing '=='", peek());
+                break;
+            }
+            advance(); // consume closing ==
+
+            // Expect BY keyword
+            if (!check(TokenType.KEYWORD) || !peek().lexeme().equals("BY")) {
+                error("PARSE_REPLACING_NO_BY", "Invalid COPY REPLACING clause: expected pairs of FROM/BY replacements", peek());
+                break;
+            }
+            advance(); // consume BY
+
+            // Expect ==to==
+            if (!check(TokenType.PSEUDO_TEXT_DELIMITER)) {
+                error("PARSE_REPLACING_NO_TO", "REPLACING clause missing 'to' pseudo-text", peek());
+                break;
+            }
+            advance(); // consume opening ==
+
+            // Read the 'to' text (everything until next ==)
+            StringBuilder toText = new StringBuilder();
+            while (!check(TokenType.EOF) && !check(TokenType.PSEUDO_TEXT_DELIMITER)) {
+                Token t = advance();
+                if (toText.length() > 0) {
+                    toText.append(" ");
+                }
+                toText.append(t.lexeme());
+            }
+
+            if (!check(TokenType.PSEUDO_TEXT_DELIMITER)) {
+                error("PARSE_REPLACING_NO_CLOSE2", "REPLACING clause missing closing '=='", peek());
+                break;
+            }
+            advance(); // consume closing ==
+
+            try {
+                pairs.add(new CopyNode.ReplacingPair(fromText.toString(), toText.toString()));
+            } catch (IllegalArgumentException e) {
+                error("PARSE_REPLACING_INVALID", e.getMessage(), tok);
+            }
+        }
+
+        return pairs;
     }
 
     /**
@@ -130,7 +320,7 @@ public final class Parser {
             error("PARSE4", "Invalid level number", levelTok);
         }
         // Validate level range
-        if (level < 1 || level > 49 || level == 66 || level == 77 || level == 88) {
+        if (level != 77 && (level < 1 || level > 49)) {
             error("PARSE5", "Unsupported level number: " + levelTok.lexeme(), levelTok);
         }
         // IDENTIFIER
@@ -171,6 +361,10 @@ public final class Parser {
                     }
                     case "PIC", "PICTURE" -> {
                         advance();
+                        // Optional IS keyword
+                        if (check(TokenType.KEYWORD) && peek().lexeme().equals("IS")) {
+                            advance();
+                        }
                         if (pic != null) {
                             error("PARSE9", "Duplicate PIC clause", tok);
                         }
@@ -178,6 +372,10 @@ public final class Parser {
                     }
                     case "USAGE" -> {
                         advance();
+                        // Optional IS keyword
+                        if (check(TokenType.KEYWORD) && peek().lexeme().equals("IS")) {
+                            advance();
+                        }
                         if (usage != null) {
                             error("PARSE10", "Duplicate USAGE clause", tok);
                         }
@@ -186,40 +384,54 @@ public final class Parser {
                             try {
                                 usage = Usage.fromLexeme(u.lexeme());
                             } catch (IllegalArgumentException ex) {
-                                error("PARSE11", ex.getMessage(), u);
+                                error("UNSUPPORTED_FEATURE", "Unsupported USAGE: " + u.lexeme(), u);
                             }
                         } else {
                             error("PARSE12", "USAGE missing value", peek());
                         }
+                    }
+                    case "COMP-3" -> {
+                        // COMP-3 can appear without USAGE keyword
+                        advance();
+                        if (usage != null) {
+                            error("PARSE10", "Duplicate USAGE clause", tok);
+                        }
+                        usage = Usage.COMP_3;
                     }
                     case "OCCURS" -> {
                         advance();
                         if (occurs != null) {
                             error("PARSE13", "Duplicate OCCURS clause", tok);
                         }
-                        if (check(TokenType.INTEGER)) {
-                            Token countTok = advance();
-                            try {
-                                int count = Integer.parseInt(countTok.lexeme());
-                                occurs = new OccursClause(count);
-                            } catch (NumberFormatException ex) {
-                                error("PARSE14", "Invalid OCCURS count", countTok);
-                            } catch (IllegalArgumentException ex) {
-                                error("PARSE15", ex.getMessage(), countTok);
-                            }
-                            // optional TIMES keyword
-                            if (check(TokenType.KEYWORD) && peek().lexeme().equals("TIMES")) {
-                                advance();
-                            }
-                        } else {
-                            error("PARSE16", "OCCURS missing integer count", peek());
-                        }
+                        occurs = parseOccursClause(tok);
+                    }
+                    case "RENAMES" -> {
+                        error("UNSUPPORTED_FEATURE", "Unsupported feature: RENAMES", tok);
+                        skipToNextEntry();
+                        return null;
                     }
                     default -> {
-                        // Unknown keyword inside entry
-                        error("PARSE17", "Unexpected keyword '" + keyword + "'", tok);
-                        advance();
+                        // Unknown keyword inside entry - might be end of entry
+                        break clauseLoop;
                     }
+                }
+            } else if (tok.type() == TokenType.IDENTIFIER) {
+                // Could be an implicit USAGE value like COMP or COMP-3
+                String upper = tok.lexeme().toUpperCase();
+                if (upper.equals("COMP") || upper.equals("COMP-3") || upper.equals("DISPLAY")) {
+                    advance();
+                    if (usage != null) {
+                        error("PARSE10", "Duplicate USAGE clause", tok);
+                    }
+                    try {
+                        usage = Usage.fromLexeme(tok.lexeme());
+                    } catch (IllegalArgumentException ex) {
+                        error("PARSE11", ex.getMessage(), tok);
+                    }
+                } else {
+                    // Unexpected identifier in clause position
+                    error("PARSE18", "Unexpected token '" + tok.lexeme() + "' in clause list", tok);
+                    advance();
                 }
             } else {
                 // Unexpected token in clause position
@@ -240,6 +452,56 @@ public final class Parser {
     }
 
     /**
+     * Parse an OCCURS clause, detecting unsupported DEPENDING ON.
+     */
+    private OccursClause parseOccursClause(Token occursTok) {
+        // Check for variable-length array syntax: OCCURS n TO m TIMES DEPENDING ON
+        if (check(TokenType.INTEGER)) {
+            Token firstNum = advance();
+
+            // Check for DEPENDING ON (variable length - unsupported)
+            if (check(TokenType.KEYWORD) && peek().lexeme().equals("TO")) {
+                advance(); // consume TO
+                if (check(TokenType.INTEGER)) {
+                    advance(); // consume max count
+                }
+                // Skip optional TIMES
+                if (check(TokenType.KEYWORD) && peek().lexeme().equals("TIMES")) {
+                    advance();
+                }
+                // Check for DEPENDING ON
+                if (check(TokenType.KEYWORD) && peek().lexeme().equals("DEPENDING")) {
+                    error("UNSUPPORTED_FEATURE", "Unsupported feature: OCCURS DEPENDING ON (v1)", occursTok);
+                    // Skip to end of clause
+                    while (!check(TokenType.EOF) && !check(TokenType.PUNCT)) {
+                        advance();
+                    }
+                    return null;
+                }
+            }
+
+            // Normal fixed OCCURS
+            try {
+                int count = Integer.parseInt(firstNum.lexeme());
+                // optional TIMES keyword
+                if (check(TokenType.KEYWORD) && peek().lexeme().equals("TIMES")) {
+                    advance();
+                }
+                return new OccursClause(count);
+            } catch (NumberFormatException ex) {
+                error("PARSE14", "Invalid OCCURS count", firstNum);
+                return null;
+            } catch (IllegalArgumentException ex) {
+                error("PARSE15", ex.getMessage(), firstNum);
+                return null;
+            }
+        } else {
+            error("PARSE16", "OCCURS missing integer count", peek());
+            return null;
+        }
+    }
+
+    /**
      * Parse a PIC clause.  This method assumes the 'PIC' or 'PICTURE'
      * keyword has already been consumed.  It consumes tokens up to but not
      * including the next keyword or '.', building a structured PicClause.
@@ -247,12 +509,18 @@ public final class Parser {
     private PicClause parsePicClause() {
         boolean signed = false;
         List<PicElement> elements = new ArrayList<>();
-        boolean expectElement = true;
         while (!check(TokenType.EOF)) {
             Token tok = peek();
             // Stop at next clause keyword or period
             if (tok.type() == TokenType.KEYWORD || (tok.type() == TokenType.PUNCT && tok.lexeme().equals("."))) {
                 break;
+            }
+            // Stop at identifier that could be a USAGE value or next clause
+            if (tok.type() == TokenType.IDENTIFIER) {
+                String upper = tok.lexeme().toUpperCase();
+                if (upper.equals("COMP") || upper.equals("COMP-3") || upper.equals("DISPLAY")) {
+                    break;
+                }
             }
             // Sign indicator
             if (tok.type() == TokenType.PIC_SYMBOL && tok.lexeme().equals("S") && elements.isEmpty() && !signed) {
@@ -265,7 +533,7 @@ public final class Parser {
                 advance();
                 // Check for repeat, e.g. X(30)
                 if (check(TokenType.PUNCT) && peek().lexeme().equals("(")) {
-                    advance(); // consume '(' 
+                    advance(); // consume '('
                     if (check(TokenType.INTEGER)) {
                         Token countTok = advance();
                         int count;
@@ -302,9 +570,24 @@ public final class Parser {
                 advance();
                 continue;
             }
-            // Unexpected token in PIC
-            error("PARSE25", "Unexpected token in PIC clause: '" + tok.lexeme() + "'", tok);
-            advance();
+            // Handle inline digits after V (e.g., V99)
+            if (tok.type() == TokenType.INTEGER && !elements.isEmpty() &&
+                elements.get(elements.size() - 1) instanceof PicVirtualDecimal) {
+                // The digits represent repeated 9s
+                String digits = tok.lexeme();
+                advance();
+                // Each digit character represents a '9'
+                for (int i = 0; i < digits.length(); i++) {
+                    try {
+                        elements.add(new PicSymbol('9'));
+                    } catch (IllegalArgumentException ex) {
+                        error("PARSE24", ex.getMessage(), tok);
+                    }
+                }
+                continue;
+            }
+            // Stop on unexpected token
+            break;
         }
         if (elements.isEmpty()) {
             error("PARSE26", "Empty PIC clause", peek());
@@ -315,14 +598,26 @@ public final class Parser {
     }
 
     /**
-     * Check whether the current token has the given type (and optional lexeme).
+     * Skip tokens until the next entry (level number or EOF).
+     */
+    private void skipToNextEntry() {
+        while (!check(TokenType.EOF)) {
+            if (check(TokenType.PUNCT) && peek().lexeme().equals(".")) {
+                advance();
+                break;
+            }
+            if (check(TokenType.LEVEL_NUMBER)) {
+                break;
+            }
+            advance();
+        }
+    }
+
+    /**
+     * Check whether the current token has the given type.
      */
     private boolean check(TokenType type) {
         return peek().type() == type;
-    }
-    private boolean check(TokenType type, String lexeme) {
-        Token tok = peek();
-        return tok.type() == type && tok.lexeme().equals(lexeme);
     }
 
     /**
@@ -357,9 +652,6 @@ public final class Parser {
         error("PARSEEXPECT", "Expected " + type + (lexeme != null ? "('" + lexeme + "')" : "") + " but found '" + tok.lexeme() + "'", tok);
         return advance();
     }
-    private Token expect(TokenType type) {
-        return expect(type, null);
-    }
 
     /**
      * Add a diagnostic with the given code and message associated with the
@@ -370,20 +662,9 @@ public final class Parser {
     }
 
     /**
-     * Container type used internally to hold AST results.  Separates the root
-     * nodes from diagnostics so the parser can return both together.
-     */
-    public record AstResult(DataAst ast, List<Diagnostic> diagnostics) {}
-
-    /**
-     * DataAst wraps the root nodes; defined as a separate class to permit
-     * additional metadata if needed in future iterations.
-     */
-    public record DataAst(List<AstNode> roots) {}
-
-    /**
-     * Mutable builder for data items.  Builders collect children and are
-     * converted to immutable DataItemNode values when parsing is complete.
+     * Mutable builder for data items.  Builders collect children and condition
+     * names and are converted to immutable DataItemNode values when parsing
+     * is complete.
      */
     private static final class NodeBuilder {
         private final int level;
@@ -394,6 +675,7 @@ public final class Parser {
         private final RedefinesClause redefines;
         private final SourceSpan span;
         private final List<NodeBuilder> children = new ArrayList<>();
+        private final List<ConditionNameNode> conditionNames = new ArrayList<>();
 
         NodeBuilder(int level, String name, PicClause pic, Usage usage, OccursClause occurs, RedefinesClause redefines, SourceSpan span) {
             this.level = level;
@@ -406,12 +688,13 @@ public final class Parser {
         }
         int level() { return level; }
         List<NodeBuilder> children() { return children; }
+        List<ConditionNameNode> conditionNames() { return conditionNames; }
         DataItemNode toAstNode() {
             List<DataItemNode> childAsts = new ArrayList<>();
             for (NodeBuilder child : children) {
                 childAsts.add(child.toAstNode());
             }
-            return new DataItemNode(level, name, pic, usage, occurs, redefines, childAsts, span);
+            return new DataItemNode(level, name, pic, usage, occurs, redefines, childAsts, conditionNames, span);
         }
     }
 }
