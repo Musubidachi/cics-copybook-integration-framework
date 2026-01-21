@@ -33,7 +33,7 @@ public record DataItemNode(
         Usage usage,
         OccursClause occurs,
         RedefinesClause redefines,
-        List<DataItemNode> children,
+        List<AstNode> children,
         List<ConditionNameNode> conditionNames,
         SourceSpan span
     ) implements AstNode {
@@ -63,7 +63,7 @@ public record DataItemNode(
             Usage usage,
             OccursClause occurs,
             RedefinesClause redefines,
-            List<DataItemNode> children,
+            List<AstNode> children,
             SourceSpan span) {
         this(level, name, pic, usage, occurs, redefines, children, null, span);
     }

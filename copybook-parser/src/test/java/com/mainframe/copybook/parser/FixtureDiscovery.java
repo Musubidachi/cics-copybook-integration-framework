@@ -183,16 +183,89 @@ public final class FixtureDiscovery {
         Path copybooks = fixtureDir.resolve("copybooks");
         if (Files.isDirectory(copybooks)) {
             try (Stream<Path> stream = Files.list(copybooks)) {
-                stream.filter(p -> {
-                    String fileName = p.getFileName().toString();
-                    return fileName.endsWith(".cpy") || fileName.endsWith(".cob");
-                }).forEach(inputs::add);
+                List<Path> discovered = stream
+                        .filter(p -> {
+                            String fileName = p.getFileName().toString();
+                            return fileName.endsWith(".cpy") || fileName.endsWith(".cob");
+                        })
+                        .toList();
+
+                // Heuristic ordering: pick the most "main" file first so that
+                // fixture comparisons are deterministic even when copybooks/
+                // contains multiple related files.
+                //
+                // Preference order:
+                //  1) A file whose stem matches the fixture id (e.g. tc04 -> TC04.cpy)
+                //  2) A file containing "MAIN" in the stem
+                //  3) Largest file (by size)
+                //  4) Name ascending
+                final String fixtureId = extractFixtureId(fixtureDir.getFileName().toString());
+                discovered.stream()
+                        .sorted((a, b) -> compareInputs(a, b, fixtureId))
+                        .forEach(inputs::add);
             } catch (IOException e) {
                 // Ignore
             }
         }
 
         return inputs;
+    }
+
+    private static String extractFixtureId(String fixtureName) {
+        // Examples: tc04-copy-replacing -> TC04, n02-copy-replacing-invalid -> N02
+        String lower = fixtureName.toLowerCase();
+        if (lower.startsWith("tc") && lower.length() >= 4) {
+            return ("TC" + lower.substring(2, 4)).toUpperCase();
+        }
+        if (lower.startsWith("n") && lower.length() >= 3) {
+            return ("N" + lower.substring(1, 3)).toUpperCase();
+        }
+        return "";
+    }
+
+    private static int compareInputs(Path a, Path b, String fixtureId) {
+        String aStem = stripExtension(a.getFileName().toString()).toUpperCase();
+        String bStem = stripExtension(b.getFileName().toString()).toUpperCase();
+
+        int aScore = scoreInput(a, aStem, fixtureId);
+        int bScore = scoreInput(b, bStem, fixtureId);
+        if (aScore != bScore) {
+            return Integer.compare(bScore, aScore); // higher score first
+        }
+
+        // Tie-breaker: larger file first
+        long aSize = safeSize(a);
+        long bSize = safeSize(b);
+        if (aSize != bSize) {
+            return Long.compare(bSize, aSize);
+        }
+
+        // Final tie-breaker: name ascending
+        return a.getFileName().toString().compareToIgnoreCase(b.getFileName().toString());
+    }
+
+    private static int scoreInput(Path p, String stemUpper, String fixtureId) {
+        int score = 0;
+        if (!fixtureId.isEmpty() && stemUpper.equals(fixtureId)) {
+            score += 100;
+        }
+        if (stemUpper.contains("MAIN")) {
+            score += 50;
+        }
+        return score;
+    }
+
+    private static String stripExtension(String name) {
+        int idx = name.lastIndexOf('.');
+        return idx >= 0 ? name.substring(0, idx) : name;
+    }
+
+    private static long safeSize(Path p) {
+        try {
+            return Files.size(p);
+        } catch (IOException e) {
+            return 0L;
+        }
     }
 
     /**

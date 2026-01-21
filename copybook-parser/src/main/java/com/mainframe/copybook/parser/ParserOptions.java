@@ -17,6 +17,8 @@ public record ParserOptions(
      * Options for parsing without COPY expansion.
      */
     public static final ParserOptions NO_EXPANSION = new ParserOptions(false, true, true);
+    
+    public static final ParserOptions NO_EXPANSION_LENIENT = new ParserOptions(false, false, true);
 
     /**
      * Options for permissive parsing without COPY expansion.
@@ -27,7 +29,7 @@ public record ParserOptions(
      * Builder for ParserOptions.
      */
     public static class Builder {
-        private boolean expandCopy = true;
+        private boolean expandCopy = false;
         private boolean strictMode = true;
         private boolean trackSourcePositions = true;
 

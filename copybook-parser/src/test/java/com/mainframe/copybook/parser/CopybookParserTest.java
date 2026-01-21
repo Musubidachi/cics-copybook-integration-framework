@@ -98,8 +98,7 @@ class CopybookParserTest {
                 String actualJson = serializer.serialize(ast);
                 String expectedJson = Files.readString(expectedPath.get());
 
-                JsonAssertions.assertJsonEquals(expectedJson, actualJson,
-                        "AST mismatch for fixture: " + fixtureName);
+                JsonAssertions.assertJsonEquals(expectedJson, actualJson);
             }
         }
 
@@ -149,7 +148,17 @@ class CopybookParserTest {
             Path mainInput = inputFiles.get(0);
             String source = Files.readString(mainInput);
 
-            CopybookAst ast = CopybookParser.parseString(source);
+            CopybookAst ast = CopybookParser.parseString(
+                    fixtureName,
+                    source,
+                    CopybookResolver.NONE,
+                    ParserOptions.builder()
+                            .expandCopy(false)
+                            .strictMode(false)          // IMPORTANT for negative fixtures
+                            .trackSourcePositions(true) // optional but useful
+                            .build()
+            );
+
 
             // Should have diagnostics
             assertFalse(ast.diagnostics().isEmpty(),
@@ -163,8 +172,7 @@ class CopybookParserTest {
                 if (fileName.endsWith(".json")) {
                     // Structural JSON comparison for expected-error.json
                     String actualDiagnosticsJson = serializeDiagnostics(ast.diagnostics());
-                    JsonAssertions.assertJsonEquals(expectedError, actualDiagnosticsJson,
-                            "Diagnostics mismatch for fixture: " + fixtureName);
+                    JsonAssertions.assertJsonEquals(expectedError, actualDiagnosticsJson);
                 } else {
                     // Text-based comparison for .err.txt files
                     boolean found = ast.diagnostics().stream()
@@ -363,7 +371,7 @@ class CopybookParserTest {
             };
 
             for (String input : malformedInputs) {
-                assertDoesNotThrow(() -> CopybookParser.parseString(input),
+				assertDoesNotThrow(() -> CopybookParser.parseString("unnamed", input, CopybookResolver.NONE, ParserOptions.PERMISSIVE),
                         "Parser should not crash on malformed input: " + input);
             }
         }
@@ -372,7 +380,7 @@ class CopybookParserTest {
         @DisplayName("Errors should include line/column info")
         void testErrorLocations() {
             String source = "       01 BAD.\n       05 MISSING PIC.";
-            CopybookAst ast = CopybookParser.parseString(source);
+            CopybookAst ast = CopybookParser.parseString("unnamed", source, CopybookResolver.NONE, ParserOptions.PERMISSIVE);
 
             // Should have diagnostics with location info
             for (Diagnostic d : ast.diagnostics()) {

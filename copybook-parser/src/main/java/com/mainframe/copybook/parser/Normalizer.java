@@ -5,9 +5,9 @@ import java.util.List;
 
 /**
  * Static utility to normalize raw copybook text into a sequence of program
- * lines.  Normalization applies the fixed‑format rules described in the
- * module documentation: columns 1–6 are ignored, column 7 denotes a full
- * comment line when it contains '*', and only columns 8–72 inclusive are
+ * lines.  Normalization applies the fixed format rules described in the
+ * module documentation: columns 1-6 are ignored, column 7 denotes a full
+ * comment line when it contains '*', and only columns 8-72 inclusive are
  * retained for parsing.  Lines shorter than 8 characters contribute an
  * empty text segment.  The original line numbers are preserved.
  */
