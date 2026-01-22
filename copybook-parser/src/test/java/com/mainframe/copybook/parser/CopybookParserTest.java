@@ -66,7 +66,9 @@ class CopybookParserTest {
             assertFalse(inputFiles.isEmpty(),
                     "No input files found in fixture: " + fixtureName);
 
-            Optional<Path> expectedPath = FixtureDiscovery.getExpectedJson(fixtureDir);
+            // Pick the expected JSON that corresponds to the main input file when available.
+            // (Some fixtures contain multiple related copybooks, e.g., REQ/RSP.)
+            Optional<Path> expectedPath;
 
             // Determine if COPY expansion is needed
             boolean expandCopy = FixtureDiscovery.requiresCopyExpansion(fixtureDir);
@@ -80,6 +82,7 @@ class CopybookParserTest {
 
             // For fixtures with expected JSON, test the first/main input file
             Path mainInput = inputFiles.get(0);
+            expectedPath = FixtureDiscovery.getExpectedJsonForInput(fixtureDir, mainInput);
             String source = Files.readString(mainInput);
             String copybookName = mainInput.getFileName().toString().replace(".cpy", "").replace(".cob", "");
 

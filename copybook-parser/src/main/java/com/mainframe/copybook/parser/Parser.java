@@ -867,16 +867,38 @@ public final class Parser {
 			return conditionNames;
 		}
 
-		DataItemNode toAstNode() {
-			List<AstNode> childAsts = new ArrayList<>();
-			for (Object child : children) {
-				if (child instanceof NodeBuilder nb) {
-					childAsts.add(nb.toAstNode());
-				} else if (child instanceof CopyNode copy) {
-					childAsts.add(copy);
-				}
-			}
-			return new DataItemNode(level, name, pic, usage, occurs, redefines, childAsts, conditionNames, span);
+		public DataItemNode toAstNode() {
+		    // Convert children builders/nodes into actual AstNode list
+		    List<AstNode> childNodes = new ArrayList<>();
+		    for (Object child : children) {
+		        if (child instanceof NodeBuilder nb) {
+		            childNodes.add(nb.toAstNode());
+		        } else if (child instanceof AstNode ast) {
+		            childNodes.add(ast);
+		        } else if (child != null) {
+		            // If you ever see this, it means you’re storing something unexpected in children.
+		            throw new IllegalStateException("Unexpected child type: " + child.getClass().getName());
+		        }
+		    }
+
+		    boolean wrapperLike =
+		            level == 1
+		            && !childNodes.isEmpty()
+		            && childNodes.stream().allMatch(c -> c instanceof CopyNode);
+
+		    return new DataItemNode(
+		            level,
+		            name,
+		            pic,
+		            usage,
+		            occurs,
+		            redefines,
+		            childNodes,
+		            conditionNames,
+		            span,
+		            wrapperLike
+		    );
 		}
+
 	}
 }

@@ -242,8 +242,19 @@ public final class CopybookParser {
 		}
 
 		// rebuild DataItemNode with expanded children, preserving all attributes
-		return new DataItemNode(dataItem.level(), dataItem.name(), dataItem.pic(), dataItem.usage(), dataItem.occurs(),
-				dataItem.redefines(), expandedChildren, dataItem.conditionNames(), dataItem.span());
+		return new DataItemNode(
+			    dataItem.level(),
+			    dataItem.name(),
+			    dataItem.pic(),
+			    dataItem.usage(),
+			    dataItem.occurs(),
+			    dataItem.redefines(),
+			    expandedChildren,
+			    dataItem.conditionNames(),
+			    dataItem.span(),
+			    dataItem.synthetic()
+			);
+
 	}
 
 	/**

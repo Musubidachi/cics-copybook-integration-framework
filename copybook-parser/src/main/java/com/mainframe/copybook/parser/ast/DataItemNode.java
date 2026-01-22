@@ -35,7 +35,8 @@ public record DataItemNode(
         RedefinesClause redefines,
         List<AstNode> children,
         List<ConditionNameNode> conditionNames,
-        SourceSpan span
+        SourceSpan span,
+        boolean synthetic
     ) implements AstNode {
 
     public DataItemNode {
@@ -53,9 +54,7 @@ public record DataItemNode(
         }
     }
 
-    /**
-     * Backward-compatible constructor without condition names.
-     */
+ // Most common ctor (with condition names)
     public DataItemNode(
             int level,
             String name,
@@ -64,7 +63,24 @@ public record DataItemNode(
             OccursClause occurs,
             RedefinesClause redefines,
             List<AstNode> children,
-            SourceSpan span) {
-        this(level, name, pic, usage, occurs, redefines, children, null, span);
+            List<ConditionNameNode> conditionNames,
+            SourceSpan span
+    ) {
+        this(level, name, pic, usage, occurs, redefines, children, conditionNames, span, false);
     }
+
+    // Older ctor (without condition names)
+    public DataItemNode(
+            int level,
+            String name,
+            PicClause pic,
+            Usage usage,
+            OccursClause occurs,
+            RedefinesClause redefines,
+            List<AstNode> children,
+            SourceSpan span
+    ) {
+        this(level, name, pic, usage, occurs, redefines, children, null, span, false);
+    }
+
 }

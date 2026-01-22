@@ -1,0 +1,25 @@
+{
+  "root": {
+    "name": "TC03-REC",
+    "level": 1,
+    "children": [
+      {
+        "name": "FIELD-A",
+        "level": 5,
+        "pic": "X(4)"
+      },
+      {
+        "name": "FIELD-B",
+        "level": 5,
+        "redefines": "FIELD-A",
+        "children": [
+          {
+            "name": "FIELD-B1",
+            "level": 10,
+            "pic": "9(4)"
+          }
+        ]
+      }
+    ]
+  }
+}

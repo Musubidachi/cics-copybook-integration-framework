@@ -1,0 +1,20 @@
+{
+  "root": {
+    "name": "TC01-RSP-REC",
+    "level": 1,
+    "children": [
+      {
+        "level": 5,
+        "name": "RSP-CODE",
+        "pic": "X(2)",
+        "usage": null
+      },
+      {
+        "level": 5,
+        "name": "RSP-MSG",
+        "pic": "X(20)",
+        "usage": null
+      }
+    ]
+  }
+}

@@ -6,7 +6,8 @@
       {
         "level": 5,
         "name": "REQ-COUNT",
-        "pic": "9(2)"
+        "pic": "9(2)",
+        "usage": null
       },
       {
         "level": 5,
@@ -16,12 +17,14 @@
           {
             "level": 10,
             "name": "REQ-ITEM-ID",
-            "pic": "X(4)"
+            "pic": "X(4)",
+            "usage": null
           },
           {
             "level": 10,
             "name": "REQ-ITEM-QTY",
-            "pic": "9(3)"
+            "pic": "9(3)",
+            "usage": null
           }
         ]
       }

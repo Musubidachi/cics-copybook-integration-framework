@@ -298,6 +298,23 @@ public final class FixtureDiscovery {
     }
 
     /**
+     * Find the expected JSON output file for a specific input file within a fixture.
+     *
+     * Convention:
+     *  - If the fixture contains <STEM>.ast.expected.json, use that.
+     *  - Otherwise fall back to expected.json.
+     *  - Otherwise fall back to the first *.ast.expected.json in the fixture root.
+     */
+    public static Optional<Path> getExpectedJsonForInput(Path fixtureDir, Path inputFile) {
+        String stem = stripExtension(inputFile.getFileName().toString());
+        Path perFile = fixtureDir.resolve(stem + ".ast.expected.json");
+        if (Files.exists(perFile)) {
+            return Optional.of(perFile);
+        }
+        return getExpectedJson(fixtureDir);
+    }
+
+    /**
      * Find the expected error file for a negative fixture.
      * Looks for expected-error.json, *.expected.err.txt, or similar patterns.
      *
@@ -338,7 +355,24 @@ public final class FixtureDiscovery {
      * @return true if COPY expansion should be enabled
      */
     public static boolean requiresCopyExpansion(Path fixtureDir) {
-        return Files.exists(fixtureDir.resolve("expand-copy=true"));
+        // Backward-compatible marker file
+        if (Files.exists(fixtureDir.resolve("expand-copy=true"))) {
+            return true;
+        }
+
+        // Preferred: options.json (allows future options without creating odd marker files)
+        Path options = fixtureDir.resolve("options.json");
+        if (Files.exists(options)) {
+            try {
+                String json = Files.readString(options);
+                // Keep it dependency-free: simple contains check is enough for tests.
+                return json.contains("\"expandCopy\"") && (json.contains(": true") || json.contains(":true"));
+            } catch (IOException e) {
+                return false;
+            }
+        }
+
+        return false;
     }
 
     /**

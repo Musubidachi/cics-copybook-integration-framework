@@ -34,13 +34,7 @@ public final class AstJsonSerializer {
 
 		List<AstNode> roots = ast.roots();
 		if (roots.size() == 1) {
-			boolean omitRootLevel = false;
-
-			if (roots.get(0) instanceof DataItemNode rootItem) {
-			    // If the root has children and ALL of them are COPY nodes, omit root.level
-			    omitRootLevel = !rootItem.children().isEmpty()
-			            && rootItem.children().stream().allMatch(c -> c instanceof CopyNode);
-			}
+			boolean omitRootLevel = (roots.get(0) instanceof DataItemNode rootItem) && rootItem.synthetic();
 			// Single root - use "root" key
 			sb.append(INDENT).append("\"root\": ");
 			serializeNode(roots.get(0), sb, 1, omitRootLevel);
@@ -65,9 +59,9 @@ public final class AstJsonSerializer {
 	/**
 	 * Serialize a single AST node.
 	 */
-	private void serializeNode(AstNode node, StringBuilder sb, int depth, boolean omit) {
+	private void serializeNode(AstNode node, StringBuilder sb, int depth, boolean omitLevelForThisNode) {
 		if (node instanceof DataItemNode item) {
-			serializeDataItem(item, sb, depth, omit);
+			serializeDataItem(item, sb, depth, omitLevelForThisNode);
 		} else if (node instanceof CopyNode copy) {
 			serializeCopyNode(copy, sb, depth);
 		} else if (node instanceof ConditionNameNode cond) {

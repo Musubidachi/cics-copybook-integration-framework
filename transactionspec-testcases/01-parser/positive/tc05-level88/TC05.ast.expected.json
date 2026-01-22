@@ -1,0 +1,25 @@
+{
+  "root": {
+    "name": "TC05-REC",
+    "level": 1,
+    "children": [
+      {
+        "name": "STATUS-CODE",
+        "level": 5,
+        "pic": "X",
+        "conditions": [
+          {
+            "name": "STATUS-OK",
+            "level": 88,
+            "value": "Y"
+          },
+          {
+            "name": "STATUS-NOT-OK",
+            "level": 88,
+            "value": "N"
+          }
+        ]
+      }
+    ]
+  }
+}
