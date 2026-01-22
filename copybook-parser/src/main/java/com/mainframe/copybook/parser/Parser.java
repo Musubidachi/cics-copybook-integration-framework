@@ -876,7 +876,7 @@ public final class Parser {
 		        } else if (child instanceof AstNode ast) {
 		            childNodes.add(ast);
 		        } else if (child != null) {
-		            // If you ever see this, it means you’re storing something unexpected in children.
+		            // If you ever see this, it means you're storing something unexpected in children.
 		            throw new IllegalStateException("Unexpected child type: " + child.getClass().getName());
 		        }
 		    }

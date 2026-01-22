@@ -21,7 +21,20 @@ public class LayoutEngine {
      * @param ast fully parsed copybook AST
      * @return deterministic {@code LayoutModel}
      */
-    public LayoutModel build(CopybookAst ast) {
+    
+    /**
+     * Convenience overload that accepts the AST produced by {@code copybook-parser}.
+     * This method converts the parser AST into the model AST and then delegates
+     * to {@link #build(CopybookAst)}.
+     *
+     * @param parserAst AST returned by copybook-parser
+     * @return computed layout model
+     */
+    public LayoutModel build(com.mainframe.copybook.parser.ast.CopybookAst parserAst) {
+        return build(ParserAstAdapter.toModelAst(parserAst));
+    }
+
+public LayoutModel build(CopybookAst ast) {
         List<LayoutField> fields = new ArrayList<>();
         Map<String, LayoutField> pathToField = new LinkedHashMap<>();
         Map<String, OverlayGroupBuilder> overlayBuilders = new LinkedHashMap<>();

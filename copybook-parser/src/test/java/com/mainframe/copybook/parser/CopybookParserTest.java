@@ -1,6 +1,18 @@
 package com.mainframe.copybook.parser;
 
-import com.mainframe.copybook.parser.ast.CopybookAst;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Stream;
+
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -9,14 +21,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Stream;
-
-import static org.junit.jupiter.api.Assertions.*;
+import com.mainframe.copybook.parser.ast.CopybookAst;
 
 /**
  * Fixture-driven tests for the copybook parser.
@@ -434,6 +439,47 @@ class CopybookParserTest {
         return sb.toString();
     }
 
+    @Nested
+    @DisplayName("PIC lexing")
+    class PicLexing {
+
+        @Test
+        void acceptsCompactSignedPic() {
+            String src = fixed("01 AMT PIC S9(3).");
+
+            CopybookAst ast = CopybookParser.parseString("TEST", src, null, ParserOptions.NO_EXPANSION);
+
+            List<Diagnostic> errors = ast.diagnostics().stream()
+                    .filter(d -> d.category().contains("error"))
+                    .toList();
+
+
+            assertTrue(errors.isEmpty(), "Expected no parse errors, got: " + errors);
+        }
+
+        @Test
+        void acceptsCompactSignedPicWithVirtualDecimalAndComp3() {
+        	String src = fixed("01 AMT PIC S9(7)V99 COMP-3.");
+
+
+            CopybookAst ast = CopybookParser.parseString("TEST", src, null, ParserOptions.NO_EXPANSION);
+
+            List<Diagnostic> errors = ast.diagnostics().stream()
+                    .filter(d -> d.category().contains("error"))
+                    .toList();
+
+            assertTrue(errors.isEmpty(), "Expected no parse errors, got: " + errors);
+        }
+    }
+
+    private static String fixed(String... lines) {
+        return String.join("\n",
+                java.util.Arrays.stream(lines)
+                        .map(l -> "       " + l)   // 7 spaces
+                        .toList()
+        ) + "\n";
+    }
+    
     private String escapeJson(String s) {
         return s.replace("\\", "\\\\")
                 .replace("\"", "\\\"")
