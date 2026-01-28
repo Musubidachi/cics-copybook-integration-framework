@@ -332,6 +332,15 @@ public final class NumericCodec {
     }
 
     /**
+     * Encode a long into a buffer at the specified offset as COMP-3.
+     */
+    public static void encodeComp3LongInto(long value, byte[] buffer, int bufOffset, int length,
+                                           String recordName, String fieldPath, int fieldOffset) {
+        byte[] encoded = encodeComp3Long(value, length, recordName, fieldPath, fieldOffset);
+        System.arraycopy(encoded, 0, buffer, bufOffset, length);
+    }
+
+    /**
      * Decode a BigDecimal from a buffer at the specified offset.
      */
     public static BigDecimal decodeComp3From(byte[] buffer, int bufOffset, int length, int scale,
@@ -339,6 +348,15 @@ public final class NumericCodec {
         byte[] fieldBytes = new byte[length];
         System.arraycopy(buffer, bufOffset, fieldBytes, 0, length);
         return decodeComp3(fieldBytes, scale, recordName, fieldPath, fieldOffset);
+    }
+
+    /**
+     * Decode a long from a buffer at the specified offset as COMP-3.
+     */
+    public static long decodeComp3LongFrom(byte[] buffer, int bufOffset, int length) {
+        byte[] fieldBytes = new byte[length];
+        System.arraycopy(buffer, bufOffset, fieldBytes, 0, length);
+        return decodeComp3(fieldBytes, 0, "unknown", "unknown", 0).longValueExact();
     }
 
     // =========================================================================

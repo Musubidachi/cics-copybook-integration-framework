@@ -35,15 +35,18 @@ public final class GenerationConfig {
 
     /**
      * Default configuration for common use cases.
+     * Note: recordName should be set before using this configuration.
      */
     public static final GenerationConfig DEFAULT = builder()
             .outputSourceRoot(Path.of("target/generated-sources/copybook"))
             .basePackage("com.mainframe.generated")
+            .recordName("Record")
             .build();
 
     // Required fields
     private final Path outputSourceRoot;
     private final String basePackage;
+    private final String recordName;
 
     // DTO generation options
     private final boolean generateAsRecords;
@@ -68,6 +71,7 @@ public final class GenerationConfig {
     private GenerationConfig(Builder builder) {
         this.outputSourceRoot = Objects.requireNonNull(builder.outputSourceRoot, "outputSourceRoot is required");
         this.basePackage = Objects.requireNonNull(builder.basePackage, "basePackage is required");
+        this.recordName = Objects.requireNonNull(builder.recordName, "recordName is required");
 
         this.generateAsRecords = builder.generateAsRecords;
         this.generateNestedGroups = builder.generateNestedGroups;
@@ -105,6 +109,13 @@ public final class GenerationConfig {
      */
     public String getBasePackage() {
         return basePackage;
+    }
+
+    /**
+     * @return the COBOL record name (typically from the 01 level)
+     */
+    public String getRecordName() {
+        return recordName;
     }
 
     /**
@@ -210,6 +221,7 @@ public final class GenerationConfig {
         return "GenerationConfig{" +
                 "outputSourceRoot=" + outputSourceRoot +
                 ", basePackage='" + basePackage + '\'' +
+                ", recordName='" + recordName + '\'' +
                 ", generateAsRecords=" + generateAsRecords +
                 ", generateNestedGroups=" + generateNestedGroups +
                 ", useListsForOccurs=" + useListsForOccurs +
@@ -232,6 +244,7 @@ public final class GenerationConfig {
 
         private Path outputSourceRoot;
         private String basePackage;
+        private String recordName;
 
         // DTO defaults
         private boolean generateAsRecords = false;
@@ -275,6 +288,17 @@ public final class GenerationConfig {
          */
         public Builder basePackage(String basePackage) {
             this.basePackage = basePackage;
+            return this;
+        }
+
+        /**
+         * Sets the COBOL record name (typically from the 01 level).
+         *
+         * @param recordName the record name
+         * @return this builder
+         */
+        public Builder recordName(String recordName) {
+            this.recordName = recordName;
             return this;
         }
 
