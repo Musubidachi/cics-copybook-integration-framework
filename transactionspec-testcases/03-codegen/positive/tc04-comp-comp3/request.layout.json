@@ -1,0 +1,27 @@
+{
+  "recordLength": 9,
+  "leaves": [
+    {
+      "path": "BIN",
+      "offset": 0,
+      "length": 2,
+      "type": "COMP_BINARY",
+      "scale": 0,
+      "signed": true
+    },
+    {
+      "path": "PACK",
+      "offset": 2,
+      "length": 4,
+      "type": "COMP3",
+      "scale": 2,
+      "signed": true
+    },
+    {
+      "path": "NAME",
+      "offset": 6,
+      "length": 3,
+      "type": "ALPHANUMERIC"
+    }
+  ]
+}

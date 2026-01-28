@@ -1,0 +1,43 @@
+{
+  "totalLength" : 6,
+  "fields" : [ {
+    "path" : "TC03-REC.A",
+    "offset" : 0,
+    "length" : 4,
+    "usage" : "DISPLAY",
+    "pic" : {
+      "digits" : 4,
+      "scale" : 0,
+      "signed" : false
+    },
+    "occursIndex" : 0
+  }, {
+    "path" : "TC03-REC.B",
+    "offset" : 0,
+    "length" : 4,
+    "usage" : "DISPLAY",
+    "pic" : {
+      "digits" : 4,
+      "scale" : 0,
+      "signed" : false
+    },
+    "occursIndex" : 0
+  }, {
+    "path" : "TC03-REC.TAIL",
+    "offset" : 4,
+    "length" : 2,
+    "usage" : "DISPLAY",
+    "pic" : {
+      "digits" : 2,
+      "scale" : 0,
+      "signed" : false
+    },
+    "occursIndex" : 0
+  } ],
+  "overlays" : [ {
+    "basePath" : "TC03-REC.A",
+    "offset" : 0,
+    "length" : 4,
+    "memberPaths" : [ "TC03-REC.A", "TC03-REC.B" ]
+  } ]
+}

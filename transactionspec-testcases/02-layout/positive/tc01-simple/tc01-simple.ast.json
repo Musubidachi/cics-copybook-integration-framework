@@ -1,0 +1,64 @@
+{
+  "roots" : [ {
+    "level" : 1,
+    "name" : "TC01-REQ-REC",
+    "pic" : null,
+    "usage" : null,
+    "occurs" : null,
+    "redefines" : null,
+    "children" : [ {
+      "level" : 5,
+      "name" : "REQ-NAME",
+      "pic" : {
+        "signed" : false,
+        "elements" : [ {
+          "symbol" : "X",
+          "count" : 10
+        } ]
+      },
+      "usage" : null,
+      "occurs" : null,
+      "redefines" : null,
+      "children" : [ ],
+      "conditionNames" : [ ],
+      "span" : {
+        "startLine" : 2,
+        "startColumn" : 8,
+        "endLine" : 2,
+        "endColumn" : 29
+      },
+      "synthetic" : false
+    }, {
+      "level" : 5,
+      "name" : "REQ-AGE",
+      "pic" : {
+        "signed" : false,
+        "elements" : [ {
+          "symbol" : "9",
+          "count" : 3
+        } ]
+      },
+      "usage" : null,
+      "occurs" : null,
+      "redefines" : null,
+      "children" : [ ],
+      "conditionNames" : [ ],
+      "span" : {
+        "startLine" : 3,
+        "startColumn" : 8,
+        "endLine" : 3,
+        "endColumn" : 28
+      },
+      "synthetic" : false
+    } ],
+    "conditionNames" : [ ],
+    "span" : {
+      "startLine" : 1,
+      "startColumn" : 8,
+      "endLine" : 1,
+      "endColumn" : 23
+    },
+    "synthetic" : false
+  } ],
+  "diagnostics" : [ ]
+}

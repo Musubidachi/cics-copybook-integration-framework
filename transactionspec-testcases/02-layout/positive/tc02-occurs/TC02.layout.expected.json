@@ -1,0 +1,82 @@
+{
+  "totalLength" : 17,
+  "fields" : [ {
+    "path" : "TC02-REC.COUNT",
+    "offset" : 0,
+    "length" : 2,
+    "usage" : "DISPLAY",
+    "pic" : {
+      "digits" : 2,
+      "scale" : 0,
+      "signed" : false
+    },
+    "occursIndex" : 0
+  }, {
+    "path" : "TC02-REC.ITEMS[0].CODE",
+    "offset" : 2,
+    "length" : 2,
+    "usage" : "DISPLAY",
+    "pic" : {
+      "digits" : 2,
+      "scale" : 0,
+      "signed" : false
+    },
+    "occursIndex" : 0
+  }, {
+    "path" : "TC02-REC.ITEMS[0].QTY",
+    "offset" : 4,
+    "length" : 3,
+    "usage" : "DISPLAY",
+    "pic" : {
+      "digits" : 3,
+      "scale" : 0,
+      "signed" : false
+    },
+    "occursIndex" : 0
+  }, {
+    "path" : "TC02-REC.ITEMS[1].CODE",
+    "offset" : 7,
+    "length" : 2,
+    "usage" : "DISPLAY",
+    "pic" : {
+      "digits" : 2,
+      "scale" : 0,
+      "signed" : false
+    },
+    "occursIndex" : 0
+  }, {
+    "path" : "TC02-REC.ITEMS[1].QTY",
+    "offset" : 9,
+    "length" : 3,
+    "usage" : "DISPLAY",
+    "pic" : {
+      "digits" : 3,
+      "scale" : 0,
+      "signed" : false
+    },
+    "occursIndex" : 0
+  }, {
+    "path" : "TC02-REC.ITEMS[2].CODE",
+    "offset" : 12,
+    "length" : 2,
+    "usage" : "DISPLAY",
+    "pic" : {
+      "digits" : 2,
+      "scale" : 0,
+      "signed" : false
+    },
+    "occursIndex" : 0
+  }, {
+    "path" : "TC02-REC.ITEMS[2].QTY",
+    "offset" : 14,
+    "length" : 3,
+    "usage" : "DISPLAY",
+    "pic" : {
+      "digits" : 3,
+      "scale" : 0,
+      "signed" : false
+    },
+    "occursIndex" : 0
+  } ],
+  "overlays" : [ ]
+}

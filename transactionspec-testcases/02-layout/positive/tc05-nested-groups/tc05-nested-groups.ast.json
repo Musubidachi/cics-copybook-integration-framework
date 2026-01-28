@@ -1,0 +1,122 @@
+{
+  "roots" : [ {
+    "level" : 1,
+    "name" : "TC05-REC",
+    "pic" : null,
+    "usage" : null,
+    "occurs" : null,
+    "redefines" : null,
+    "children" : [ {
+      "level" : 5,
+      "name" : "HDR",
+      "pic" : null,
+      "usage" : null,
+      "occurs" : null,
+      "redefines" : null,
+      "children" : [ {
+        "level" : 10,
+        "name" : "ID",
+        "pic" : {
+          "signed" : false,
+          "elements" : [ {
+            "symbol" : "X",
+            "count" : 5
+          } ]
+        },
+        "usage" : null,
+        "occurs" : null,
+        "redefines" : null,
+        "children" : [ ],
+        "conditionNames" : [ ],
+        "span" : {
+          "startLine" : 3,
+          "startColumn" : 8,
+          "endLine" : 3,
+          "endColumn" : 24
+        },
+        "synthetic" : false
+      }, {
+        "level" : 10,
+        "name" : "FLAG",
+        "pic" : {
+          "signed" : false,
+          "elements" : [ {
+            "symbol" : "X",
+            "count" : 1
+          } ]
+        },
+        "usage" : null,
+        "occurs" : null,
+        "redefines" : null,
+        "children" : [ ],
+        "conditionNames" : [ ],
+        "span" : {
+          "startLine" : 4,
+          "startColumn" : 8,
+          "endLine" : 4,
+          "endColumn" : 24
+        },
+        "synthetic" : false
+      } ],
+      "conditionNames" : [ ],
+      "span" : {
+        "startLine" : 2,
+        "startColumn" : 8,
+        "endLine" : 2,
+        "endColumn" : 14
+      },
+      "synthetic" : false
+    }, {
+      "level" : 5,
+      "name" : "BODY",
+      "pic" : null,
+      "usage" : null,
+      "occurs" : null,
+      "redefines" : null,
+      "children" : [ {
+        "level" : 10,
+        "name" : "AMT",
+        "pic" : {
+          "signed" : false,
+          "elements" : [ {
+            "symbol" : "9",
+            "count" : 3
+          }, { }, {
+            "symbol" : "9"
+          }, {
+            "symbol" : "9"
+          } ]
+        },
+        "usage" : null,
+        "occurs" : null,
+        "redefines" : null,
+        "children" : [ ],
+        "conditionNames" : [ ],
+        "span" : {
+          "startLine" : 6,
+          "startColumn" : 8,
+          "endLine" : 6,
+          "endColumn" : 27
+        },
+        "synthetic" : false
+      } ],
+      "conditionNames" : [ ],
+      "span" : {
+        "startLine" : 5,
+        "startColumn" : 8,
+        "endLine" : 5,
+        "endColumn" : 15
+      },
+      "synthetic" : false
+    } ],
+    "conditionNames" : [ ],
+    "span" : {
+      "startLine" : 1,
+      "startColumn" : 8,
+      "endLine" : 1,
+      "endColumn" : 19
+    },
+    "synthetic" : false
+  } ],
+  "diagnostics" : [ ]
+}

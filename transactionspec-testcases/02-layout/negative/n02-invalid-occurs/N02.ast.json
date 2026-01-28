@@ -1,0 +1,18 @@
+{
+  "root": "N02-REC",
+  "children": [
+    {
+      "level": 5,
+      "name": "ITEMS",
+      "occurs": 0,
+      "children": [
+        {
+          "level": 10,
+          "name": "X",
+          "pic": "X(1)",
+          "usage": "DISPLAY"
+        }
+      ]
+    }
+  ]
+}

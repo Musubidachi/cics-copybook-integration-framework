@@ -1,0 +1,38 @@
+{
+  "totalLength" : 9,
+  "fields" : [ {
+    "path" : "TC04-REC.BIN",
+    "offset" : 0,
+    "length" : 2,
+    "usage" : "COMP",
+    "pic" : {
+      "digits" : 4,
+      "scale" : 0,
+      "signed" : true
+    },
+    "occursIndex" : 0
+  }, {
+    "path" : "TC04-REC.PACK",
+    "offset" : 2,
+    "length" : 4,
+    "usage" : "COMP3",
+    "pic" : {
+      "digits" : 7,
+      "scale" : 2,
+      "signed" : true
+    },
+    "occursIndex" : 0
+  }, {
+    "path" : "TC04-REC.NAME",
+    "offset" : 6,
+    "length" : 3,
+    "usage" : "DISPLAY",
+    "pic" : {
+      "digits" : 3,
+      "scale" : 0,
+      "signed" : false
+    },
+    "occursIndex" : 0
+  } ],
+  "overlays" : [ ]
+}

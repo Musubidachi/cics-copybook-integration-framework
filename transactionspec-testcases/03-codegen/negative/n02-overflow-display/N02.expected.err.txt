@@ -1,0 +1,1 @@
+Value 12345 does not fit DISPLAY_NUMERIC length 3

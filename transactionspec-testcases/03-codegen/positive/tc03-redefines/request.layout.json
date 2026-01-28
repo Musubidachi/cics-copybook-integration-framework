@@ -1,0 +1,35 @@
+{
+  "recordLength": 6,
+  "leaves": [
+    {
+      "path": "A",
+      "offset": 0,
+      "length": 4,
+      "type": "ALPHANUMERIC"
+    },
+    {
+      "path": "B",
+      "offset": 0,
+      "length": 4,
+      "type": "DISPLAY_NUMERIC",
+      "scale": 0
+    },
+    {
+      "path": "TAIL",
+      "offset": 4,
+      "length": 2,
+      "type": "ALPHANUMERIC"
+    }
+  ],
+  "overlays": [
+    {
+      "basePath": "A",
+      "offset": 0,
+      "length": 4,
+      "members": [
+        "A",
+        "B"
+      ]
+    }
+  ]
+}

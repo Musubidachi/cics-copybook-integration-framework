@@ -1,0 +1,51 @@
+{
+  "recordLength": 17,
+  "leaves": [
+    {
+      "path": "COUNT",
+      "offset": 0,
+      "length": 2,
+      "type": "DISPLAY_NUMERIC",
+      "scale": 0
+    },
+    {
+      "path": "ITEMS[0].CODE",
+      "offset": 2,
+      "length": 2,
+      "type": "ALPHANUMERIC"
+    },
+    {
+      "path": "ITEMS[0].QTY",
+      "offset": 4,
+      "length": 3,
+      "type": "DISPLAY_NUMERIC",
+      "scale": 0
+    },
+    {
+      "path": "ITEMS[1].CODE",
+      "offset": 7,
+      "length": 2,
+      "type": "ALPHANUMERIC"
+    },
+    {
+      "path": "ITEMS[1].QTY",
+      "offset": 9,
+      "length": 3,
+      "type": "DISPLAY_NUMERIC",
+      "scale": 0
+    },
+    {
+      "path": "ITEMS[2].CODE",
+      "offset": 12,
+      "length": 2,
+      "type": "ALPHANUMERIC"
+    },
+    {
+      "path": "ITEMS[2].QTY",
+      "offset": 14,
+      "length": 3,
+      "type": "DISPLAY_NUMERIC",
+      "scale": 0
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "totalLength" : 11,
+  "fields" : [ {
+    "path" : "TC05-REC.HDR.ID",
+    "offset" : 0,
+    "length" : 5,
+    "usage" : "DISPLAY",
+    "pic" : {
+      "digits" : 5,
+      "scale" : 0,
+      "signed" : false
+    },
+    "occursIndex" : 0
+  }, {
+    "path" : "TC05-REC.HDR.FLAG",
+    "offset" : 5,
+    "length" : 1,
+    "usage" : "DISPLAY",
+    "pic" : {
+      "digits" : 1,
+      "scale" : 0,
+      "signed" : false
+    },
+    "occursIndex" : 0
+  }, {
+    "path" : "TC05-REC.BODY.AMT",
+    "offset" : 6,
+    "length" : 5,
+    "usage" : "DISPLAY",
+    "pic" : {
+      "digits" : 5,
+      "scale" : 2,
+      "signed" : false
+    },
+    "occursIndex" : 0
+  } ],
+  "overlays" : [ ]
+}

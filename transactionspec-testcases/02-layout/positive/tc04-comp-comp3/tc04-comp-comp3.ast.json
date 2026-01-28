@@ -1,0 +1,90 @@
+{
+  "roots" : [ {
+    "level" : 1,
+    "name" : "TC04-REC",
+    "pic" : null,
+    "usage" : null,
+    "occurs" : null,
+    "redefines" : null,
+    "children" : [ {
+      "level" : 5,
+      "name" : "BIN",
+      "pic" : {
+        "signed" : true,
+        "elements" : [ {
+          "symbol" : "9",
+          "count" : 4
+        } ]
+      },
+      "usage" : "COMP",
+      "occurs" : null,
+      "redefines" : null,
+      "children" : [ ],
+      "conditionNames" : [ ],
+      "span" : {
+        "startLine" : 2,
+        "startColumn" : 8,
+        "endLine" : 2,
+        "endColumn" : 30
+      },
+      "synthetic" : false
+    }, {
+      "level" : 5,
+      "name" : "PACK",
+      "pic" : {
+        "signed" : true,
+        "elements" : [ {
+          "symbol" : "9",
+          "count" : 5
+        }, { }, {
+          "symbol" : "9"
+        }, {
+          "symbol" : "9"
+        } ]
+      },
+      "usage" : "COMP_3",
+      "occurs" : null,
+      "redefines" : null,
+      "children" : [ ],
+      "conditionNames" : [ ],
+      "span" : {
+        "startLine" : 3,
+        "startColumn" : 8,
+        "endLine" : 3,
+        "endColumn" : 35
+      },
+      "synthetic" : false
+    }, {
+      "level" : 5,
+      "name" : "NAME",
+      "pic" : {
+        "signed" : false,
+        "elements" : [ {
+          "symbol" : "X",
+          "count" : 3
+        } ]
+      },
+      "usage" : null,
+      "occurs" : null,
+      "redefines" : null,
+      "children" : [ ],
+      "conditionNames" : [ ],
+      "span" : {
+        "startLine" : 4,
+        "startColumn" : 8,
+        "endLine" : 4,
+        "endColumn" : 24
+      },
+      "synthetic" : false
+    } ],
+    "conditionNames" : [ ],
+    "span" : {
+      "startLine" : 1,
+      "startColumn" : 8,
+      "endLine" : 1,
+      "endColumn" : 19
+    },
+    "synthetic" : false
+  } ],
+  "diagnostics" : [ ]
+}

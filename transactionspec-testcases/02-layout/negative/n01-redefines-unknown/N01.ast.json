@@ -1,0 +1,12 @@
+{
+  "root": "N01-REC",
+  "children": [
+    {
+      "level": 5,
+      "name": "B",
+      "redefines": "A",
+      "pic": "X(2)",
+      "usage": "DISPLAY"
+    }
+  ]
+}

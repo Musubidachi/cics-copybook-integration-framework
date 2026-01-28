@@ -1,0 +1,104 @@
+{
+  "roots" : [ {
+    "level" : 1,
+    "name" : "TC02-REC",
+    "pic" : null,
+    "usage" : null,
+    "occurs" : null,
+    "redefines" : null,
+    "children" : [ {
+      "level" : 5,
+      "name" : "COUNT",
+      "pic" : {
+        "signed" : false,
+        "elements" : [ {
+          "symbol" : "9",
+          "count" : 2
+        } ]
+      },
+      "usage" : null,
+      "occurs" : null,
+      "redefines" : null,
+      "children" : [ ],
+      "conditionNames" : [ ],
+      "span" : {
+        "startLine" : 2,
+        "startColumn" : 8,
+        "endLine" : 2,
+        "endColumn" : 25
+      },
+      "synthetic" : false
+    }, {
+      "level" : 5,
+      "name" : "ITEMS",
+      "pic" : null,
+      "usage" : null,
+      "occurs" : {
+        "count" : 3
+      },
+      "redefines" : null,
+      "children" : [ {
+        "level" : 10,
+        "name" : "CODE",
+        "pic" : {
+          "signed" : false,
+          "elements" : [ {
+            "symbol" : "X",
+            "count" : 2
+          } ]
+        },
+        "usage" : null,
+        "occurs" : null,
+        "redefines" : null,
+        "children" : [ ],
+        "conditionNames" : [ ],
+        "span" : {
+          "startLine" : 4,
+          "startColumn" : 8,
+          "endLine" : 4,
+          "endColumn" : 24
+        },
+        "synthetic" : false
+      }, {
+        "level" : 10,
+        "name" : "QTY",
+        "pic" : {
+          "signed" : false,
+          "elements" : [ {
+            "symbol" : "9",
+            "count" : 3
+          } ]
+        },
+        "usage" : null,
+        "occurs" : null,
+        "redefines" : null,
+        "children" : [ ],
+        "conditionNames" : [ ],
+        "span" : {
+          "startLine" : 5,
+          "startColumn" : 8,
+          "endLine" : 5,
+          "endColumn" : 24
+        },
+        "synthetic" : false
+      } ],
+      "conditionNames" : [ ],
+      "span" : {
+        "startLine" : 3,
+        "startColumn" : 8,
+        "endLine" : 3,
+        "endColumn" : 25
+      },
+      "synthetic" : false
+    } ],
+    "conditionNames" : [ ],
+    "span" : {
+      "startLine" : 1,
+      "startColumn" : 8,
+      "endLine" : 1,
+      "endColumn" : 19
+    },
+    "synthetic" : false
+  } ],
+  "diagnostics" : [ ]
+}
