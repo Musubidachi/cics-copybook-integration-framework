@@ -1,0 +1,13 @@
+{
+  "recordLength": 5,
+  "leaves": [
+    {
+      "path": "SIGNED-VALUE",
+      "offset": 0,
+      "length": 5,
+      "type": "DISPLAY_NUMERIC",
+      "signed": true,
+      "scale": 0
+    }
+  ]
+}
