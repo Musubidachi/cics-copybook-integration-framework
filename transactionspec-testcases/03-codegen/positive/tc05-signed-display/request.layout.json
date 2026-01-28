@@ -1,0 +1,29 @@
+{
+  "recordLength": 13,
+  "leaves": [
+    {
+      "path": "BALANCE",
+      "offset": 0,
+      "length": 5,
+      "type": "DISPLAY_NUMERIC",
+      "signed": true,
+      "scale": 0
+    },
+    {
+      "path": "AMOUNT",
+      "offset": 5,
+      "length": 5,
+      "type": "DISPLAY_NUMERIC",
+      "signed": true,
+      "scale": 2
+    },
+    {
+      "path": "CODE",
+      "offset": 10,
+      "length": 3,
+      "type": "DISPLAY_NUMERIC",
+      "signed": false,
+      "scale": 0
+    }
+  ]
+}
